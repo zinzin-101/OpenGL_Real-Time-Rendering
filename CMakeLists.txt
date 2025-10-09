@@ -1,7 +1,37 @@
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/bin/Debug)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin/Release)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/lib/Debug)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/lib/Release)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/lib/Debug)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/lib/Release)
+
 cmake_minimum_required (VERSION 3.0)
 cmake_policy(VERSION 3.0)
 
-project(LearnOpenGL)
+project(OpenGLRealTimeRendering)
+
+if(WIN32 AND NOT DEFINED CMAKE_GENERATOR)
+    message(STATUS "No generator specified. Trying Visual Studio 2022...")
+    execute_process(
+        COMMAND "${CMAKE_COMMAND}" -G "Visual Studio 17 2022" -A x64 "${CMAKE_SOURCE_DIR}" -B "${CMAKE_BINARY_DIR}"
+        RESULT_VARIABLE _vs_result
+    )
+    if(NOT _vs_result EQUAL 0)
+        message(STATUS "Trying Visual Studio 2019 instead...")
+        execute_process(
+            COMMAND "${CMAKE_COMMAND}" -G "Visual Studio 16 2019" -A x64 "${CMAKE_SOURCE_DIR}" -B "${CMAKE_BINARY_DIR}"
+            RESULT_VARIABLE _vs_result
+        )
+    endif()
+    if(_vs_result EQUAL 0)
+        message(STATUS "Re-invoked CMake successfully with Visual Studio generator.")
+        message(FATAL_ERROR "Restarting CMake to finalize generator switch...")
+    endif()
+endif()
 
 set(CMAKE_CXX_STANDARD 17) # this does nothing for MSVC, use target_compile_options below
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -103,14 +133,14 @@ function(create_project_from_sources)
         target_link_options(${NAME} PUBLIC /ignore:4099)
     endif(MSVC)
     if(WIN32)
-        set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${project}")
-        set_target_properties(${NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${project}/Debug")
+        set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/${project}")
+        set_target_properties(${NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin/${project}/Debug")
     elseif(UNIX AND NOT APPLE)
-        set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${project}")
+        set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/${project}")
     elseif(APPLE)
-        set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${project}")
-        set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin/${project}")
-        set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin/${project}")
+        set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/${project}")
+        set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/${project}")
+        set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/${project}")
     endif(WIN32)
     # copy shader files to build directory
     file(GLOB SHADERS
@@ -130,11 +160,11 @@ function(create_project_from_sources)
             add_custom_command(TARGET ${NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${SHADER} $<TARGET_FILE_DIR:${NAME}>)
 			add_custom_command(TARGET ${NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different ${DLLS} $<TARGET_FILE_DIR:${NAME}>)
         elseif(UNIX AND NOT APPLE)
-            file(COPY ${SHADER} DESTINATION ${CMAKE_SOURCE_DIR}/bin/${chapter})
+            file(COPY ${SHADER} DESTINATION ${CMAKE_BINARY_DIR}/bin/${project})
         elseif(APPLE)
             # create symbolic link for *.vs *.fs *.gs
             get_filename_component(SHADERNAME ${SHADER} NAME)
-            makeLink(${SHADER} ${CMAKE_SOURCE_DIR}/bin/${chapter}/${SHADERNAME} ${NAME})
+            makeLink(${SHADER} ${CMAKE_BINARY_DIR}/bin/${project}/${SHADERNAME} ${NAME})
         endif(WIN32)
     endforeach(SHADER)
     # if compiling for visual studio, also use configure file for each project (specifically to set up working directory)
