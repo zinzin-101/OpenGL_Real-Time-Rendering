@@ -92,9 +92,7 @@ function(create_project_from_sources)
             "src/${project}/${demo}/*.cs"
     )
 	if (demo STREQUAL "")
-		SET(replaced "")
-		string(REPLACE "/" "_" replaced ${chapter})
-		set(NAME ${replaced})
+		set(NAME "${project}")
 	else()
 		set(NAME "${project}__${demo}")
 	endif()
@@ -146,10 +144,13 @@ function(create_project_from_sources)
 endfunction()
 
 # then create a project file per tutorial
-foreach(PROJECTS ${PROJECTS})
-    foreach(DEMO ${${PROJECTS}})
-		create_project_from_sources(${PROJECTS} ${DEMO})
-    endforeach(DEMO)
-endforeach(PROJECTS)
+foreach(PROJECT ${PROJECTS})
+    set(project ${PROJECT})
+    set(demo "")  # no subdemo
+    create_project_from_sources()
+    
+    # Group them into folders in Visual Studio
+    set_target_properties(${PROJECT} PROPERTIES FOLDER "LearnOpenGL Demos")
+endforeach()
 
 include_directories(${CMAKE_SOURCE_DIR}/includes)
