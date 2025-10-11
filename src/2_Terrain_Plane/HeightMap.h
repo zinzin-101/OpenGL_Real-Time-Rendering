@@ -14,9 +14,9 @@ class HeightMap {
 		void clearData();
 
 		// Diamond-Square algorithm
-		static void diamondSquare(float** data, unsigned int width);
-		static void squareStep(float** data, unsigned int width);
-		static void diamondStep(float** data, unsigned int width);
+		static void diamondSquare(float** data, int size, unsigned int width);
+		static void squareStep(float** data, int x, int z, int reach, unsigned int width);
+		static void diamondStep(float** data, int x, int z, int reach, unsigned int width);
 
 	public:
 		HeightMap(unsigned int width);
