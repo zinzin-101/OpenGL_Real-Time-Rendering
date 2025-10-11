@@ -17,10 +17,17 @@ void HeightMap::setWidth(unsigned int width) {
 }
 
 HeightMapData HeightMap::getData() const {
+	if (data == nullptr) {
+		return HeightMapData(nullptr, 0);
+	}
 	return HeightMapData(this->data, this->width);
 }
 
 void HeightMap::clearData() {
+	if (data == nullptr) {
+		return;
+	}
+
 	for (int i = 0; i < currentWidth; i++) {
 		delete[] data[i];
 	}
