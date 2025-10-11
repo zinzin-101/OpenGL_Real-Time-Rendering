@@ -32,17 +32,29 @@ struct TerrainData {
     const Shader& terrainShader;
 };
 
+struct SunData {
+    SunData(const GLuint& sunVAO, const GLuint& sunVBO, const GLuint& sunEBO, const Shader& sunShader, glm::vec3& position):
+    sunVAO(sunVAO), sunVBO(sunVBO), sunEBO(sunEBO), sunShader(sunShader), position(position) {}
+    glm::vec3& position;
+    const GLuint& sunVAO;
+    const GLuint& sunVBO;
+    const GLuint& sunEBO;
+    const Shader& sunShader;
+};
+
 void initTerrain(GLuint& terrainVAO, GLuint& terrainVBO, GLuint& terrainEBO, const VerticesData& verticesData);
-void update(GLFWwindow*& window, const TerrainData& terrainData);
-void render(const TerrainData& terrainData);
+void initSun(GLuint& sunVAO, GLuint& sunVBO, GLuint& sunEBO);
+void update(GLFWwindow*& window, const TerrainData& terrainData, const SunData& sunData);
+void render(const TerrainData& terrainData, const SunData& sunData);
 void drawTerrain(GLuint& terrainVAO, const VerticesData& verticesData);
+void drawSun(const GLuint& sunVAO);
 
 // settings
 const unsigned int SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 900;
 
 // camera
-Camera camera(glm::vec3(0.0f, 10.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, 10.0f, -10.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -60,7 +72,7 @@ void initTerrain(GLuint& terrainVAO, GLuint& terrainVBO, GLuint& terrainEBO, con
     glBufferData(
         GL_ARRAY_BUFFER,
         verticesData.verticesCount * sizeof(float) * 3,
-        verticesData.getVertices(),
+        verticesData.vertices,
         GL_STATIC_DRAW
         );
 
@@ -73,7 +85,36 @@ void initTerrain(GLuint& terrainVAO, GLuint& terrainVBO, GLuint& terrainEBO, con
     glBufferData(
         GL_ELEMENT_ARRAY_BUFFER,
         verticesData.indicesCount * sizeof(unsigned int),
-        verticesData.getIndices(),
+        verticesData.indices,
+        GL_STATIC_DRAW
+    );
+}
+
+void initSun(GLuint& sunVAO, GLuint& sunVBO, GLuint& sunEBO) {
+    // bind VAO
+    glGenVertexArrays(1, &sunVAO);
+    glBindVertexArray(sunVAO);
+
+    // generate VBO
+    glGenBuffers(1, &sunVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, sunVBO);
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        sphereVerticesCount * sizeof(float) * 3,
+        sphereVertices,
+        GL_STATIC_DRAW
+    );
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(0);
+
+    // generate EBO
+    glGenBuffers(1, &sunEBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sunEBO);
+    glBufferData(
+        GL_ELEMENT_ARRAY_BUFFER,
+        sphereFaceIndicesCount * sizeof(unsigned int),
+        sphereFaceIndices,
         GL_STATIC_DRAW
     );
 }
@@ -90,7 +131,15 @@ void drawTerrain(const GLuint& terrainVAO, const VerticesData& verticesData) {
     }
 }
 
-void render(const TerrainData& terrainData) {
+void drawSun(const GLuint& sunVAO) {
+    glBindVertexArray(sunVAO);
+    //for (unsigned int i = 0; i < sphereFaceIndicesCount; i++) {
+    //    glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, sphereFaceIndices + (3 * i));
+    //}
+    glDrawElements(GL_TRIANGLES, sphereFaceIndicesCount * 3, GL_UNSIGNED_INT, 0);
+}
+
+void render(const TerrainData& terrainData, const SunData& sunData) {
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -102,18 +151,26 @@ void render(const TerrainData& terrainData) {
 
     glm::mat4 model = glm::mat4(1.0f);
     terrainData.terrainShader.setMat4("model", model);
-
     drawTerrain(terrainData.terrainVAO, terrainData.verticesData);
+
+    sunData.sunShader.use();
+    sunData.sunShader.setMat4("projection", projection);
+    sunData.sunShader.setMat4("view", view);
+    glm::mat4 sunModel = glm::mat4(1.0f);
+    sunModel = glm::scale(sunModel, glm::vec3(10.0f, 10.0f, 10.0f));
+    sunModel = glm::translate(sunModel, sunData.position);
+    sunData.sunShader.setMat4("model", sunModel);
+    drawSun(sunData.sunVAO);
 }
 
-void update(GLFWwindow*& window, const TerrainData& terrainData) {
+void update(GLFWwindow*& window, const TerrainData& terrainData, const SunData& sunData) {
     float currentFrame = static_cast<float>(glfwGetTime());
     float dt = currentFrame - lastFrame;
     lastFrame = currentFrame;
 
     processInput(window, dt);
 
-    render(terrainData);
+    render(terrainData, sunData);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -168,15 +225,26 @@ int main()
     GLuint terrainVBO;
     GLuint terrainEBO;
     initTerrain(terrainVAO, terrainVBO, terrainEBO, vertsData);
-    Shader terrainShader("VertexShader.vs", "TerrainFragmentShader.fs");
+    Shader terrainShader("TerrainVertexShader.vs", "multiple_lights.fs");
     TerrainData terrainData = TerrainData(vertsData, terrainVAO, terrainVBO, terrainEBO, terrainShader);
 
-    camera.MovementSpeed = 100;
+    glm::vec3 sunPosition(0.0f, 10.0f, -12.0f);
+    GLuint sunVAO;
+    GLuint sunVBO;
+    GLuint sunEBO;
+    initSun(sunVAO, sunVBO, sunEBO);
+    Shader sunShader("LightSphere.vs", "LightSphere.fs");
+    SunData sunData = SunData(sunVAO, sunVBO, sunEBO, sunShader, sunPosition);
+
+    camera.MovementSpeed = 50;
 
     while (!glfwWindowShouldClose(window))
     {
-        update(window, terrainData);
+        update(window, terrainData, sunData);
     }
+
+    delete vertsData.vertices;
+    delete vertsData.indices;
 
     glfwTerminate();
     return 0;
@@ -197,6 +265,10 @@ void processInput(GLFWwindow *window, float dt)
         camera.ProcessKeyboard(LEFT, dt);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, dt);
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+        camera.ProcessKeyboard(UP, dt);
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+        camera.ProcessKeyboard(DOWN, dt);
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
