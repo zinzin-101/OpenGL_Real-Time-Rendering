@@ -205,6 +205,16 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
     terrainData.terrainShader.setMat4("projection", projection);
     terrainData.terrainShader.setMat4("view", view);
 
+    // lighting
+    terrainData.terrainShader.setVec3("viewPos", sunData.position);
+    terrainData.terrainShader.setVec3("pointLights[0].position", sunData.position);
+    terrainData.terrainShader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
+    terrainData.terrainShader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
+    terrainData.terrainShader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
+    terrainData.terrainShader.setFloat("pointLights[0].constant", 1.0f);
+    terrainData.terrainShader.setFloat("pointLights[0].linear", 0.09f);
+    terrainData.terrainShader.setFloat("pointLights[0].quadratic", 0.032f);
+
     glm::mat4 model = glm::mat4(1.0f);
     float halfWidth = (terrainData.verticesData.stripsCount + 1) / 2.0f;
     model = glm::translate(model, HORIZONTAL_SCALING_FACTOR * glm::vec3(-halfWidth, 0, -halfWidth));
@@ -285,7 +295,10 @@ int main()
     GLuint terrainVBO;
     GLuint terrainEBO;
     initTerrain(terrainVAO, terrainVBO, terrainEBO, vertsData);
-    Shader terrainShader("TerrainVertexShader.vs", "multiple_lights.fs");
+    Shader terrainShader("TerrainVertexShader.vs", "TerrainFragmentShader.fs");
+    terrainShader.use();
+    terrainShader.setVec3("color", glm::vec3(1.0f, 0.5f, 0.2f));
+    terrainShader.setFloat("shininess", 50.0f);
     TerrainData terrainData = TerrainData(vertsData, terrainVAO, terrainVBO, terrainEBO, terrainShader);
 
     glm::vec3 sunPosition(0.0f, 10.0f, 0.0f);
