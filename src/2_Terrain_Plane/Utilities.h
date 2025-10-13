@@ -5,10 +5,10 @@ const float HEIGHT_SCALING_FACTOR = 0.5f;
 const float HORIZONTAL_SCALING_FACTOR = 0.5f;
 
 struct VerticesData {
-	VerticesData(float* vertices, unsigned int* indices, unsigned int verticesCount, unsigned int indicesCount) :
-		vertices(vertices), indices(indices), verticesCount(verticesCount), indicesCount(indicesCount), stripsCount(0), numOfverticesPerStrip(0) {
+	VerticesData(float* vertsAndNormals, unsigned int* indices, unsigned int verticesCount, unsigned int indicesCount) :
+		vertsAndNormals(vertsAndNormals), indices(indices), verticesCount(verticesCount), indicesCount(indicesCount), stripsCount(0), numOfverticesPerStrip(0) {
 	}
-	float* vertices;
+	float* vertsAndNormals;
 	unsigned int* indices;
 	unsigned int verticesCount;
 	unsigned int indicesCount;

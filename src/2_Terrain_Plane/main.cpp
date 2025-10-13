@@ -128,12 +128,16 @@ void initTerrain(GLuint& terrainVAO, GLuint& terrainVBO, GLuint& terrainEBO, con
     glBufferData(
         GL_ARRAY_BUFFER,
         verticesData.verticesCount * sizeof(float) * 3,
-        verticesData.vertices,
+        verticesData.vertsAndNormals,
         GL_STATIC_DRAW
         );
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    // positions
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 0);
     glEnableVertexAttribArray(0);
+    // normals
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     // generate EBO
     glGenBuffers(1, &terrainEBO);
@@ -314,8 +318,8 @@ int main()
         update(window, terrainData, sunData);
     }
 
-    delete vertsData.vertices;
-    delete vertsData.indices;
+    if (vertsData.vertsAndNormals != nullptr) delete vertsData.vertsAndNormals;
+    if (vertsData.indices != nullptr) delete vertsData.indices;
 
     glfwTerminate();
     return 0;
