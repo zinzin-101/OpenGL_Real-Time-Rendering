@@ -61,6 +61,60 @@ bool firstMouse = true;
 
 float lastFrame = 0.0f;
 
+const float PI = 3.14159265358979323846;
+
+void initSphere() {
+    initSphereVertices();
+    initSphereIndices();
+}
+
+void initSphereVertices() {
+    std::vector<float> tempVerts;
+    for (int i = 0; i <= SphereRings; i++) {
+        float phi = PI * (float)i / SphereRings;
+        for (int j = 0; j <= SphereSegments; j++) {
+            float theta = 2.0f * PI * (float)j / SphereSegments;
+            float x = sinf(phi) * cosf(theta);
+            float y = cosf(phi);
+            float z = sinf(phi) * sinf(theta);
+
+            tempVerts.emplace_back(x);
+            tempVerts.emplace_back(y);
+            tempVerts.emplace_back(z);
+        }
+    }
+
+    unsigned int count = tempVerts.size();
+    for (int i = 0; i < count; i++) {
+        SphereVertices[i] = tempVerts[i];
+    }
+}
+
+void initSphereIndices() {
+    std::vector<unsigned int> tempIndices;
+    for (int i = 0; i < SphereRings; i++) {
+        for (int j = 0; j < SphereSegments; j++) {
+            unsigned int v0 = i * (SphereSegments + 1) + j;
+            unsigned int v1 = i * (SphereSegments + 1) + j + 1;
+            unsigned int v2 = (i + 1) * (SphereSegments + 1) + j;
+            unsigned int v3 = (i + 1) * (SphereSegments + 1) + j + 1;
+
+            tempIndices.emplace_back(v0);
+            tempIndices.emplace_back(v2);
+            tempIndices.emplace_back(v1);
+
+            tempIndices.emplace_back(v1);
+            tempIndices.emplace_back(v2);
+            tempIndices.emplace_back(v3);
+        }
+    }
+
+    unsigned int count = tempIndices.size();
+    for (int i = 0; i < count; i++) {
+        SphereFaceIndices[i] = tempIndices[i];
+    }
+}
+
 void initTerrain(GLuint& terrainVAO, GLuint& terrainVBO, GLuint& terrainEBO, const VerticesData& verticesData) {
     // bind VAO
     glGenVertexArrays(1, &terrainVAO);
@@ -100,8 +154,8 @@ void initSun(GLuint& sunVAO, GLuint& sunVBO, GLuint& sunEBO) {
     glBindBuffer(GL_ARRAY_BUFFER, sunVBO);
     glBufferData(
         GL_ARRAY_BUFFER,
-        sphereVerticesCount * sizeof(float) * 3,
-        sphereVertices,
+        SphereVerticesCount * sizeof(float) * 3,
+        SphereVertices,
         GL_STATIC_DRAW
     );
 
@@ -113,8 +167,8 @@ void initSun(GLuint& sunVAO, GLuint& sunVBO, GLuint& sunEBO) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sunEBO);
     glBufferData(
         GL_ELEMENT_ARRAY_BUFFER,
-        sphereFaceIndicesCount * sizeof(unsigned int),
-        sphereFaceIndices,
+        SphereFaceIndicesCount * sizeof(unsigned int) * 6,
+        SphereFaceIndices,
         GL_STATIC_DRAW
     );
 }
@@ -136,7 +190,7 @@ void drawSun(const GLuint& sunVAO) {
     //for (unsigned int i = 0; i < sphereFaceIndicesCount; i++) {
     //    glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, sphereFaceIndices + (3 * i));
     //}
-    glDrawElements(GL_TRIANGLES, sphereFaceIndicesCount * 3, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, SphereFaceIndicesCount * 6, GL_UNSIGNED_INT, 0);
 }
 
 void render(const TerrainData& terrainData, const SunData& sunData) {
@@ -159,7 +213,7 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
     sunData.sunShader.setMat4("projection", projection);
     sunData.sunShader.setMat4("view", view);
     glm::mat4 sunModel = glm::mat4(1.0f);
-    sunModel = glm::scale(sunModel, glm::vec3(10.0f, 10.0f, 10.0f));
+    sunModel = glm::scale(sunModel, glm::vec3(50.0f, 50.0f, 50.0f));
     sunModel = glm::translate(sunModel, sunData.position);
     sunData.sunShader.setMat4("model", sunModel);
     drawSun(sunData.sunVAO);
@@ -223,6 +277,8 @@ int main()
     HeightMapData heightMapData = heightMap.getData();
     VerticesData vertsData = getVerticesFromHeightMap(heightMapData.data, heightMapData.width);
 
+    initSphere();
+
     GLuint terrainVAO;
     GLuint terrainVBO;
     GLuint terrainEBO;
@@ -230,7 +286,7 @@ int main()
     Shader terrainShader("TerrainVertexShader.vs", "multiple_lights.fs");
     TerrainData terrainData = TerrainData(vertsData, terrainVAO, terrainVBO, terrainEBO, terrainShader);
 
-    glm::vec3 sunPosition(0.0f, 10.0f, -12.0f);
+    glm::vec3 sunPosition(0.0f, 10.0f, 0.0f);
     GLuint sunVAO;
     GLuint sunVBO;
     GLuint sunEBO;
