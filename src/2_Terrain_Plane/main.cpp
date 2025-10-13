@@ -55,6 +55,8 @@ const unsigned int SCR_HEIGHT = 900;
 
 // camera
 Camera camera(glm::vec3(0.0f, 10.0f, -10.0f));
+float moveSpeed = 100.0f;
+float speedMultiplier = 2.5f;
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -272,7 +274,7 @@ int main()
 
     glEnable(GL_DEPTH_TEST);
     
-    HeightMap heightMap(512 + 1);
+    HeightMap heightMap(1024 + 1);
     //HeightMap heightMap(4 + 1);
     HeightMapData heightMapData = heightMap.getData();
     VerticesData vertsData = getVerticesFromHeightMap(heightMapData.data, heightMapData.width);
@@ -294,8 +296,6 @@ int main()
     Shader sunShader("LightSphere.vs", "LightSphere.fs");
     SunData sunData = SunData(sunVAO, sunVBO, sunEBO, sunShader, sunPosition);
 
-    camera.MovementSpeed = 50;
-
     while (!glfwWindowShouldClose(window))
     {
         update(window, terrainData, sunData);
@@ -315,18 +315,37 @@ void processInput(GLFWwindow *window, float dt)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
+    //if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    //    camera.ProcessKeyboard(FORWARD, dt);
+    //if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    //    camera.ProcessKeyboard(BACKWARD, dt);
+    //if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    //    camera.ProcessKeyboard(LEFT, dt);
+    //if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    //    camera.ProcessKeyboard(RIGHT, dt);
+    //if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+    //    camera.ProcessKeyboard(UP, dt);
+    //if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+    //    camera.ProcessKeyboard(DOWN, dt);
+
+    glm::vec3 movement = glm::vec3();
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.ProcessKeyboard(FORWARD, dt);
+        movement.z += 1.0f;
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.ProcessKeyboard(BACKWARD, dt);
+        movement.z -= 1.0f;
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.ProcessKeyboard(LEFT, dt);
+        movement.x -= 1.0f;
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.ProcessKeyboard(RIGHT, dt);
+        movement.x += 1.0f;
     if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-        camera.ProcessKeyboard(UP, dt);
+        movement.y += 1.0f;
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-        camera.ProcessKeyboard(DOWN, dt);
+        movement.y -= 1.0f;
+
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        movement *= speedMultiplier;
+    movement *= moveSpeed;
+    camera.MyProcessKeyboard(movement, dt);
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes

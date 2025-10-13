@@ -84,6 +84,12 @@ public:
             Position -= Up * velocity;
     }
 
+    void MyProcessKeyboard(glm::vec3 movement, float dt) {
+        Position += Front * movement.z * dt;
+        Position += Right * movement.x * dt;
+        Position += Up * movement.y * dt;
+    }
+
     // processes input received from a mouse input system. Expects the offset value in both the x and y direction.
     void ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true)
     {
