@@ -260,11 +260,11 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
     terrainData.terrainShader.setVec3("viewPos", sunData.position);
     terrainData.terrainShader.setVec3("pointLights[0].position", sunData.position);
     terrainData.terrainShader.setVec3("pointLights[0].ambient", 0.9f, 0.9f, 0.9f);
-    terrainData.terrainShader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
-    terrainData.terrainShader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
+    terrainData.terrainShader.setVec3("pointLights[0].diffuse", 0.9f, 0.9f, 0.9f);
+    terrainData.terrainShader.setVec3("pointLights[0].specular", 0.5f, 0.5f, 0.5f);
     terrainData.terrainShader.setFloat("pointLights[0].constant", 0.8f);
-    terrainData.terrainShader.setFloat("pointLights[0].linear", 0.0014f);
-    terrainData.terrainShader.setFloat("pointLights[0].quadratic", 0.000000001f);
+    terrainData.terrainShader.setFloat("pointLights[0].linear", 0.0000014f);
+    terrainData.terrainShader.setFloat("pointLights[0].quadratic", 0.00001f);
 
     glm::mat4 model = glm::mat4(1.0f);
     float halfWidth = (terrainData.verticesData.stripsCount + 1) / 2.0f;
@@ -298,10 +298,10 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
 void updateObjects(SunData& sunData, float dt) {
     static float t = 0.0f;
     t += dt;
-    //sunData.position.x = 200.0f * cosf(1.25f * t);
-    sunData.position.y = 200.0f * sinf(1.25f * t) + 50.0f;
+    sunData.position.x = 15.0f * cosf(0.5f * t);
+    sunData.position.y = 10.0f * sinf(0.5f * t) + 5.0f;
 
-    seaPosition.y = 50.0f * sinf(0.125f * t) - 25.0f;
+    seaPosition.y = 50.0f * sinf(0.125f * t) - 30.0f;
 }
 
 void update(GLFWwindow*& window, const TerrainData& terrainData, SunData& sunData) {
