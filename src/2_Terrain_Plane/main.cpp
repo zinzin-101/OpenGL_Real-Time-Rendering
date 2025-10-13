@@ -54,7 +54,7 @@ const unsigned int SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 900;
 
 // camera
-Camera camera(glm::vec3(0.0f, 10.0f, -10.0f));
+Camera camera(glm::vec3(0.0f, 10.0f, 0.0f));
 float moveSpeed = 100.0f;
 float speedMultiplier = 2.5f;
 float lastX = SCR_WIDTH / 2.0f;
@@ -127,7 +127,7 @@ void initTerrain(GLuint& terrainVAO, GLuint& terrainVBO, GLuint& terrainEBO, con
     glBindBuffer(GL_ARRAY_BUFFER, terrainVBO);
     glBufferData(
         GL_ARRAY_BUFFER,
-        verticesData.verticesCount * sizeof(float) * 3,
+        verticesData.verticesCount * sizeof(float) * 6,
         verticesData.vertsAndNormals,
         GL_STATIC_DRAW
         );
@@ -210,14 +210,15 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
     terrainData.terrainShader.setMat4("view", view);
 
     // lighting
+    // sun
     terrainData.terrainShader.setVec3("viewPos", sunData.position);
     terrainData.terrainShader.setVec3("pointLights[0].position", sunData.position);
     terrainData.terrainShader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
     terrainData.terrainShader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
     terrainData.terrainShader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
     terrainData.terrainShader.setFloat("pointLights[0].constant", 1.0f);
-    terrainData.terrainShader.setFloat("pointLights[0].linear", 0.09f);
-    terrainData.terrainShader.setFloat("pointLights[0].quadratic", 0.032f);
+    terrainData.terrainShader.setFloat("pointLights[0].linear", 0.02f);
+    terrainData.terrainShader.setFloat("pointLights[0].quadratic", 0.002f);
 
     glm::mat4 model = glm::mat4(1.0f);
     float halfWidth = (terrainData.verticesData.stripsCount + 1) / 2.0f;
@@ -305,7 +306,7 @@ int main()
     terrainShader.setFloat("shininess", 50.0f);
     TerrainData terrainData = TerrainData(vertsData, terrainVAO, terrainVBO, terrainEBO, terrainShader);
 
-    glm::vec3 sunPosition(0.0f, 10.0f, 0.0f);
+    glm::vec3 sunPosition(0.0f, 5.0f, 0.0f);
     GLuint sunVAO;
     GLuint sunVBO;
     GLuint sunEBO;
