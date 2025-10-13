@@ -47,6 +47,8 @@ GLuint seaVBO;
 GLuint seaEBO;
 glm::vec3 seaPosition = glm::vec3();
 
+float sunStrength = 1.0f;
+
 void initTerrain(GLuint& terrainVAO, GLuint& terrainVBO, GLuint& terrainEBO, const VerticesData& verticesData);
 void initSun(GLuint& sunVAO, GLuint& sunVBO, GLuint& sunEBO);
 void initSea(GLuint& seaVAO, GLuint& seaVBO, GLuint& seaEBO);
@@ -257,14 +259,14 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
     // lighting from sun
     terrainData.terrainShader.setVec3("color", glm::vec3(1.0f, 0.5f, 0.2f));
     terrainData.terrainShader.setFloat("shininess", 50.0f);
-    terrainData.terrainShader.setVec3("viewPos", sunData.position);
+    terrainData.terrainShader.setVec3("viewPos", camera.Position);
     terrainData.terrainShader.setVec3("pointLights[0].position", sunData.position);
-    terrainData.terrainShader.setVec3("pointLights[0].ambient", 0.9f, 0.9f, 0.9f);
-    terrainData.terrainShader.setVec3("pointLights[0].diffuse", 0.9f, 0.9f, 0.9f);
-    terrainData.terrainShader.setVec3("pointLights[0].specular", 0.5f, 0.5f, 0.5f);
+    terrainData.terrainShader.setVec3("pointLights[0].ambient", sunStrength * glm::vec3(0.9f) + glm::vec3(0.3f));
+    terrainData.terrainShader.setVec3("pointLights[0].diffuse", sunStrength * glm::vec3(0.9f));
+    terrainData.terrainShader.setVec3("pointLights[0].specular", sunStrength * glm::vec3(0.5f));
     terrainData.terrainShader.setFloat("pointLights[0].constant", 0.8f);
     terrainData.terrainShader.setFloat("pointLights[0].linear", 0.0000014f);
-    terrainData.terrainShader.setFloat("pointLights[0].quadratic", 0.00001f);
+    terrainData.terrainShader.setFloat("pointLights[0].quadratic", 0.000001f);
 
     glm::mat4 model = glm::mat4(1.0f);
     float halfWidth = (terrainData.verticesData.stripsCount + 1) / 2.0f;
@@ -289,8 +291,8 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
     sunData.sunShader.setMat4("projection", projection);
     sunData.sunShader.setMat4("view", view);
     glm::mat4 sunModel = glm::mat4(1.0f);
-    sunModel = glm::scale(sunModel, glm::vec3(100.0f, 100.0f, 100.0f));
     sunModel = glm::translate(sunModel, sunData.position);
+    sunModel = glm::scale(sunModel, glm::vec3(100.0f, 100.0f, 100.0f));
     sunData.sunShader.setMat4("model", sunModel);
     drawSun(sunData.sunVAO);
 }
@@ -298,8 +300,10 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
 void updateObjects(SunData& sunData, float dt) {
     static float t = 0.0f;
     t += dt;
-    sunData.position.x = 15.0f * cosf(0.5f * t);
-    sunData.position.y = 10.0f * sinf(0.5f * t) + 5.0f;
+    sunData.position.x = 1024.0f * cosf(0.5f * t);
+    sunData.position.y = 800.0f * sinf(0.5f * t);
+    sunStrength = sunData.position.y / 500.0f;
+    if (sunStrength < 0.0f) sunStrength = 0.0f;
 
     seaPosition.y = 50.0f * sinf(0.125f * t) - 30.0f;
 }

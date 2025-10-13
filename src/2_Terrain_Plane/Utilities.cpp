@@ -19,8 +19,8 @@ VerticesData getVerticesFromHeightMap(float** data, unsigned int width) {
 		float heightDown = (z > 0) ? data[z - 1][x] : data[z][x];
 		float heightUp = (z < width - 1) ? data[z + 1][x] : data[z][x];
 		float horizontalDifference = 2.0f * HORIZONTAL_SCALING_FACTOR;
-		glm::vec3 dx = glm::vec3(horizontalDifference, HEIGHT_SCALING_FACTOR * (heightRight - heightLeft), horizontalDifference);
-		glm::vec3 dz = glm::vec3(horizontalDifference, HEIGHT_SCALING_FACTOR * (heightUp - heightDown), horizontalDifference);
+		glm::vec3 dx = glm::vec3(horizontalDifference, HEIGHT_SCALING_FACTOR * (heightRight - heightLeft), 0.0f);
+		glm::vec3 dz = glm::vec3(0.0f, HEIGHT_SCALING_FACTOR * (heightUp - heightDown), horizontalDifference);
 		glm::vec3 normal = glm::normalize(glm::cross(dz, dx));
 		normals[i * 3 + 0] = normal.x;
 		normals[i * 3 + 1] = normal.y;
