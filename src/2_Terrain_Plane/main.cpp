@@ -150,6 +150,8 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
     terrainData.terrainShader.setMat4("view", view);
 
     glm::mat4 model = glm::mat4(1.0f);
+    float halfWidth = (terrainData.verticesData.stripsCount + 1) / 2.0f;
+    model = glm::translate(model, HORIZONTAL_SCALING_FACTOR * glm::vec3(-halfWidth, 0, -halfWidth));
     terrainData.terrainShader.setMat4("model", model);
     drawTerrain(terrainData.terrainVAO, terrainData.verticesData);
 
