@@ -58,10 +58,11 @@ unsigned int SphereFaceIndices[SphereFaceIndicesCount * 3 * 2];
 
 const unsigned int SquareVerticesCount = 4;
 const float SquareVertices[] = {
-    0.5f,0.0f,0.5f,
-    -0.5f,0.0f,0.5f,
-    -0.5f,0.0f,-0.5f,
-    -0.5f,0.0f,0.5f,
+    // positions       normals
+    0.5f, 0.0f, 0.5f,  0.0f, 1.0f, 0.0f,
+   -0.5f, 0.0f, 0.5f,  0.0f, 1.0f, 0.0f,
+   -0.5f, 0.0f,-0.5f,  0.0f, 1.0f, 0.0f,
+    0.5f, 0.0f,-0.5f,  0.0f, 1.0f, 0.0f
 };
 
 const unsigned int SquareFaceIndicesCount = 2;

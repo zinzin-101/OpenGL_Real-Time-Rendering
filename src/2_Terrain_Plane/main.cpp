@@ -42,13 +42,20 @@ struct SunData {
     const Shader& sunShader;
 };
 
+GLuint seaVAO;
+GLuint seaVBO;
+GLuint seaEBO;
+glm::vec3 seaPosition = glm::vec3();
+
 void initTerrain(GLuint& terrainVAO, GLuint& terrainVBO, GLuint& terrainEBO, const VerticesData& verticesData);
 void initSun(GLuint& sunVAO, GLuint& sunVBO, GLuint& sunEBO);
+void initSea(GLuint& seaVAO, GLuint& seaVBO, GLuint& seaEBO);
 void updateObjects(SunData& sunData, float dt);
 void update(GLFWwindow*& window, const TerrainData& terrainData, SunData& sunData);
 void render(const TerrainData& terrainData, const SunData& sunData);
 void drawTerrain(GLuint& terrainVAO, const VerticesData& verticesData);
 void drawSun(const GLuint& sunVAO);
+void drawSea(const GLuint& seaVAO);
 
 // settings
 const unsigned int SCR_WIDTH = 1600;
@@ -180,6 +187,39 @@ void initSun(GLuint& sunVAO, GLuint& sunVBO, GLuint& sunEBO) {
     );
 }
 
+void initSea(GLuint& seaVAO, GLuint& seaVBO, GLuint& seaEBO) {
+    // bind VAO
+    glGenVertexArrays(1, &seaVAO);
+    glBindVertexArray(seaVAO);
+
+    // generate VBO
+    glGenBuffers(1, &seaVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, seaVBO);
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        sizeof(cubeVertices),
+        cubeVertices,
+        GL_STATIC_DRAW
+    );
+
+    // positions
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 0);
+    glEnableVertexAttribArray(0);
+    // normals
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    //// generate EBO
+    //glGenBuffers(1, &seaEBO);
+    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, seaEBO);
+    //glBufferData(
+    //    GL_ELEMENT_ARRAY_BUFFER,
+    //    SquareFaceIndicesCount * sizeof(unsigned int) * 3,
+    //    SquareFaceIndices,
+    //    GL_STATIC_DRAW
+    //);
+}
+
 void drawTerrain(const GLuint& terrainVAO, const VerticesData& verticesData) {
     glBindVertexArray(terrainVAO);
     for (unsigned int i = 0; i < verticesData.stripsCount; i++) {
@@ -197,26 +237,34 @@ void drawSun(const GLuint& sunVAO) {
     glDrawElements(GL_TRIANGLES, SphereFaceIndicesCount * 6, GL_UNSIGNED_INT, 0);
 }
 
+void drawSea(const GLuint& seaVAO) {
+    glBindVertexArray(seaVAO);
+    //glDrawElements(GL_TRIANGLES, SquareFaceIndicesCount * 3, GL_UNSIGNED_INT, 0);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+}
+
 void render(const TerrainData& terrainData, const SunData& sunData) {
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClearColor(0.678f, 0.847f, 0.902f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // terrain
     terrainData.terrainShader.use();
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 2000.0f);
     glm::mat4 view = camera.GetViewMatrix();
     terrainData.terrainShader.setMat4("projection", projection);
     terrainData.terrainShader.setMat4("view", view);
 
     // lighting from sun
+    terrainData.terrainShader.setVec3("color", glm::vec3(1.0f, 0.5f, 0.2f));
+    terrainData.terrainShader.setFloat("shininess", 50.0f);
     terrainData.terrainShader.setVec3("viewPos", sunData.position);
     terrainData.terrainShader.setVec3("pointLights[0].position", sunData.position);
     terrainData.terrainShader.setVec3("pointLights[0].ambient", 0.9f, 0.9f, 0.9f);
     terrainData.terrainShader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
     terrainData.terrainShader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
     terrainData.terrainShader.setFloat("pointLights[0].constant", 0.8f);
-    terrainData.terrainShader.setFloat("pointLights[0].linear", 0.014f);
-    terrainData.terrainShader.setFloat("pointLights[0].quadratic", 0.0000001f);
+    terrainData.terrainShader.setFloat("pointLights[0].linear", 0.0014f);
+    terrainData.terrainShader.setFloat("pointLights[0].quadratic", 0.000000001f);
 
     glm::mat4 model = glm::mat4(1.0f);
     float halfWidth = (terrainData.verticesData.stripsCount + 1) / 2.0f;
@@ -224,12 +272,24 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
     terrainData.terrainShader.setMat4("model", model);
     drawTerrain(terrainData.terrainVAO, terrainData.verticesData);
 
+    // sea
+    terrainData.terrainShader.use();
+    terrainData.terrainShader.setMat4("projection", projection);
+    terrainData.terrainShader.setMat4("view", view);
+    glm::mat4 seaModel = glm::mat4(1.0f);
+    seaModel = glm::scale(seaModel, glm::vec3(2000.0f, 1.0f, 2000.0f));
+    seaModel = glm::translate(seaModel, seaPosition);
+    terrainData.terrainShader.setMat4("model", seaModel);
+    terrainData.terrainShader.setVec3("color", glm::vec3(0.0f, 0.0f, 1.0f));
+    terrainData.terrainShader.setFloat("shininess", 128.0f);
+    drawSea(seaVAO);
+
     // sun
     sunData.sunShader.use();
     sunData.sunShader.setMat4("projection", projection);
     sunData.sunShader.setMat4("view", view);
     glm::mat4 sunModel = glm::mat4(1.0f);
-    sunModel = glm::scale(sunModel, glm::vec3(5.0f, 5.0f, 5.0f));
+    sunModel = glm::scale(sunModel, glm::vec3(100.0f, 100.0f, 100.0f));
     sunModel = glm::translate(sunModel, sunData.position);
     sunData.sunShader.setMat4("model", sunModel);
     drawSun(sunData.sunVAO);
@@ -238,8 +298,10 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
 void updateObjects(SunData& sunData, float dt) {
     static float t = 0.0f;
     t += dt;
-    sunData.position.x = 50.0f * cosf(1.0f * t);
-    sunData.position.y = 50.0f * sinf(1.0f * t);
+    //sunData.position.x = 200.0f * cosf(1.25f * t);
+    sunData.position.y = 200.0f * sinf(1.25f * t) + 50.0f;
+
+    seaPosition.y = 50.0f * sinf(0.125f * t) - 25.0f;
 }
 
 void update(GLFWwindow*& window, const TerrainData& terrainData, SunData& sunData) {
@@ -318,7 +380,11 @@ int main()
     GLuint sunEBO;
     initSun(sunVAO, sunVBO, sunEBO);
     Shader sunShader("LightSphere.vs", "LightSphere.fs");
+    sunShader.use();
+    sunShader.setVec3("color", glm::vec3(1.0f, 1.0f, 0.0f));
     SunData sunData = SunData(sunVAO, sunVBO, sunEBO, sunShader, sunPosition);
+
+    initSea(seaVAO, seaVBO, seaEBO);
 
     while (!glfwWindowShouldClose(window))
     {
