@@ -44,7 +44,8 @@ struct SunData {
 
 void initTerrain(GLuint& terrainVAO, GLuint& terrainVBO, GLuint& terrainEBO, const VerticesData& verticesData);
 void initSun(GLuint& sunVAO, GLuint& sunVBO, GLuint& sunEBO);
-void update(GLFWwindow*& window, const TerrainData& terrainData, const SunData& sunData);
+void updateObjects(SunData& sunData, float dt);
+void update(GLFWwindow*& window, const TerrainData& terrainData, SunData& sunData);
 void render(const TerrainData& terrainData, const SunData& sunData);
 void drawTerrain(GLuint& terrainVAO, const VerticesData& verticesData);
 void drawSun(const GLuint& sunVAO);
@@ -193,9 +194,6 @@ void drawTerrain(const GLuint& terrainVAO, const VerticesData& verticesData) {
 
 void drawSun(const GLuint& sunVAO) {
     glBindVertexArray(sunVAO);
-    //for (unsigned int i = 0; i < sphereFaceIndicesCount; i++) {
-    //    glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, sphereFaceIndices + (3 * i));
-    //}
     glDrawElements(GL_TRIANGLES, SphereFaceIndicesCount * 6, GL_UNSIGNED_INT, 0);
 }
 
@@ -203,22 +201,22 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // terrain
     terrainData.terrainShader.use();
     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
     glm::mat4 view = camera.GetViewMatrix();
     terrainData.terrainShader.setMat4("projection", projection);
     terrainData.terrainShader.setMat4("view", view);
 
-    // lighting
-    // sun
+    // lighting from sun
     terrainData.terrainShader.setVec3("viewPos", sunData.position);
     terrainData.terrainShader.setVec3("pointLights[0].position", sunData.position);
-    terrainData.terrainShader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
+    terrainData.terrainShader.setVec3("pointLights[0].ambient", 0.9f, 0.9f, 0.9f);
     terrainData.terrainShader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
     terrainData.terrainShader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
-    terrainData.terrainShader.setFloat("pointLights[0].constant", 1.0f);
-    terrainData.terrainShader.setFloat("pointLights[0].linear", 0.02f);
-    terrainData.terrainShader.setFloat("pointLights[0].quadratic", 0.002f);
+    terrainData.terrainShader.setFloat("pointLights[0].constant", 0.8f);
+    terrainData.terrainShader.setFloat("pointLights[0].linear", 0.014f);
+    terrainData.terrainShader.setFloat("pointLights[0].quadratic", 0.0000001f);
 
     glm::mat4 model = glm::mat4(1.0f);
     float halfWidth = (terrainData.verticesData.stripsCount + 1) / 2.0f;
@@ -226,23 +224,31 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
     terrainData.terrainShader.setMat4("model", model);
     drawTerrain(terrainData.terrainVAO, terrainData.verticesData);
 
+    // sun
     sunData.sunShader.use();
     sunData.sunShader.setMat4("projection", projection);
     sunData.sunShader.setMat4("view", view);
     glm::mat4 sunModel = glm::mat4(1.0f);
-    sunModel = glm::scale(sunModel, glm::vec3(50.0f, 50.0f, 50.0f));
+    sunModel = glm::scale(sunModel, glm::vec3(5.0f, 5.0f, 5.0f));
     sunModel = glm::translate(sunModel, sunData.position);
     sunData.sunShader.setMat4("model", sunModel);
     drawSun(sunData.sunVAO);
 }
 
-void update(GLFWwindow*& window, const TerrainData& terrainData, const SunData& sunData) {
+void updateObjects(SunData& sunData, float dt) {
+    static float t = 0.0f;
+    t += dt;
+    sunData.position.x = 50.0f * cosf(1.0f * t);
+    sunData.position.y = 50.0f * sinf(1.0f * t);
+}
+
+void update(GLFWwindow*& window, const TerrainData& terrainData, SunData& sunData) {
     float currentFrame = static_cast<float>(glfwGetTime());
     float dt = currentFrame - lastFrame;
     lastFrame = currentFrame;
 
     processInput(window, dt);
-
+    updateObjects(sunData, dt);
     render(terrainData, sunData);
 
     glfwSwapBuffers(window);
