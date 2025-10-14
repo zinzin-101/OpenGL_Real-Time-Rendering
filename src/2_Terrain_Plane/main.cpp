@@ -56,11 +56,17 @@ glm::vec3 planePosition = glm::vec3(0.0f, 75.0f, 0.0f);
 glm::vec3 planeForward = glm::vec3(0.0f, 0.0f, 1.0f);
 glm::vec3 planeUp = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 planeRight = glm::vec3(1.0f, 0.0f, 0.0f);
-float planeSpeed = 100.0f;
-float pitchRate = 75.0f;
+float defaultPlaneSpeed = 100.0f;
+float planeSpeed = defaultPlaneSpeed;
+float maxPlaneSpeed = 300.0f;
+float minPlaneSpeed = 30.0f;
+float planeAccelerationRate = 50.0f;
+float pitchRate = 150.0f;
 float yawRate = 50.0f;
-float rollRate = 100.0f;
+float rollRate = 200.0f;
 float camDistanceFromPlane = 50.0f;
+float maxFov = 90.0f;
+float minFov = 60.0f;
 void yawPlane(float deg);
 void pitchPlane(float deg);
 void rollPlane(float deg);
@@ -335,15 +341,27 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
     terrainData.terrainShader.setFloat("pointLights[0].constant", 0.4f);
     terrainData.terrainShader.setFloat("pointLights[0].linear", 0.0000014f);
     terrainData.terrainShader.setFloat("pointLights[0].quadratic", 0.0000001f);
-    // lighting from camera
-    terrainData.terrainShader.setVec3("viewPos", camera.Position);
-    terrainData.terrainShader.setVec3("pointLights[1].position", camera.Position);
+    // lighting from camera plane
+    // point light
+    terrainData.terrainShader.setVec3("viewPos", planePosition);
+    terrainData.terrainShader.setVec3("pointLights[1].position", planePosition);
     terrainData.terrainShader.setVec3("pointLights[1].ambient", glm::vec3(0.7f));
     terrainData.terrainShader.setVec3("pointLights[1].diffuse", glm::vec3(0.7f));
     terrainData.terrainShader.setVec3("pointLights[1].specular", glm::vec3(0.2f));
     terrainData.terrainShader.setFloat("pointLights[1].constant", 0.6f);
     terrainData.terrainShader.setFloat("pointLights[1].linear", 0.0014f);
     terrainData.terrainShader.setFloat("pointLights[1].quadratic", 0.0001f);
+    // spotlight
+    terrainData.terrainShader.setVec3("spotLight.position", planePosition);
+    terrainData.terrainShader.setVec3("spotLight.direction", planeForward);
+    terrainData.terrainShader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
+    terrainData.terrainShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
+    terrainData.terrainShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+    terrainData.terrainShader.setFloat("spotLight.constant", 1.0f);
+    terrainData.terrainShader.setFloat("spotLight.linear", 0.09f);
+    terrainData.terrainShader.setFloat("spotLight.quadratic", 0.032f);
+    terrainData.terrainShader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
+    terrainData.terrainShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
 
     glm::mat4 model = glm::mat4(1.0f);
     float halfWidth = (terrainData.verticesData.stripsCount + 1) / 2.0f;
@@ -545,6 +563,24 @@ void processInput(GLFWwindow *window, float dt)
         yawPlane(-yawRate * dt);
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
         yawPlane(yawRate * dt);
+
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        planeSpeed += planeAccelerationRate * dt;
+    else if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+        planeSpeed -= planeAccelerationRate * dt;
+    else {
+        if (planeSpeed + 5.0f > defaultPlaneSpeed) {
+            planeSpeed -= planeAccelerationRate * 0.5f * dt;
+        }
+        else if (planeSpeed - 5.0f < defaultPlaneSpeed) {
+            planeSpeed += planeAccelerationRate * 0.5f * dt;
+        }
+    }
+
+    planeSpeed = glm::clamp(planeSpeed, minPlaneSpeed, maxPlaneSpeed);
+    float t = (planeSpeed - minPlaneSpeed) / (maxPlaneSpeed - minPlaneSpeed);
+    float fov = (1 - t) * minFov + t * maxFov;
+    camera.Zoom = fov;
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -583,7 +619,7 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 // ----------------------------------------------------------------------
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    camera.ProcessMouseScroll(static_cast<float>(yoffset));
+    //camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
 
 // utility function for loading a 2D texture from file
