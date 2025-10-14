@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 
-const float HEIGHT_SCALING_FACTOR = 8.0f;
+const float HEIGHT_SCALING_FACTOR = 16.0f;
 const float HORIZONTAL_SCALING_FACTOR = 2.0f;
 
 struct VerticesData {

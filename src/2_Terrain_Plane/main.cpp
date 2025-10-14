@@ -64,7 +64,7 @@ const unsigned int SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 900;
 
 // camera
-Camera camera(glm::vec3(0.0f, 10.0f, 0.0f));
+Camera camera(glm::vec3(0.0f, 50.0f, 0.0f));
 float moveSpeed = 100.0f;
 float speedMultiplier = 2.5f;
 float lastX = SCR_WIDTH / 2.0f;
@@ -261,16 +261,26 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
     terrainData.terrainShader.setFloat("shininess", 30.0f);
     terrainData.terrainShader.setVec3("viewPos", camera.Position);
     terrainData.terrainShader.setVec3("pointLights[0].position", sunData.position);
-    terrainData.terrainShader.setVec3("pointLights[0].ambient", sunStrength * glm::vec3(0.9f) + glm::vec3(0.3f));
-    terrainData.terrainShader.setVec3("pointLights[0].diffuse", sunStrength * glm::vec3(0.9f));
-    terrainData.terrainShader.setVec3("pointLights[0].specular", sunStrength * glm::vec3(0.5f));
-    terrainData.terrainShader.setFloat("pointLights[0].constant", 0.8f);
+    terrainData.terrainShader.setVec3("pointLights[0].ambient", sunStrength * glm::vec3(0.2f) + glm::vec3(0.2f));
+    terrainData.terrainShader.setVec3("pointLights[0].diffuse", sunStrength * glm::vec3(0.2f));
+    terrainData.terrainShader.setVec3("pointLights[0].specular", sunStrength * glm::vec3(0.1f));
+    terrainData.terrainShader.setFloat("pointLights[0].constant", 0.4f);
     terrainData.terrainShader.setFloat("pointLights[0].linear", 0.0000014f);
-    terrainData.terrainShader.setFloat("pointLights[0].quadratic", 0.000001f);
+    terrainData.terrainShader.setFloat("pointLights[0].quadratic", 0.0000001f);
+    // lighting from camera
+    terrainData.terrainShader.setVec3("viewPos", camera.Position);
+    terrainData.terrainShader.setVec3("pointLights[1].position", camera.Position);
+    terrainData.terrainShader.setVec3("pointLights[1].ambient", glm::vec3(0.7f));
+    terrainData.terrainShader.setVec3("pointLights[1].diffuse", glm::vec3(0.7f));
+    terrainData.terrainShader.setVec3("pointLights[1].specular", glm::vec3(0.2f));
+    terrainData.terrainShader.setFloat("pointLights[1].constant", 0.6f);
+    terrainData.terrainShader.setFloat("pointLights[1].linear", 0.0014f);
+    terrainData.terrainShader.setFloat("pointLights[1].quadratic", 0.0001f);
 
     glm::mat4 model = glm::mat4(1.0f);
     float halfWidth = (terrainData.verticesData.stripsCount + 1) / 2.0f;
-    model = glm::translate(model, HORIZONTAL_SCALING_FACTOR * glm::vec3(-halfWidth, 0, -halfWidth));
+    model = glm::translate(model, HORIZONTAL_SCALING_FACTOR * glm::vec3(-halfWidth, 0.0f, -halfWidth));
+    model = glm::translate(model, HEIGHT_SCALING_FACTOR * glm::vec3(0.0f, 1.0f, 0.0f));
     terrainData.terrainShader.setMat4("model", model);
     drawTerrain(terrainData.terrainVAO, terrainData.verticesData);
 
@@ -279,7 +289,7 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
     terrainData.terrainShader.setMat4("projection", projection);
     terrainData.terrainShader.setMat4("view", view);
     glm::mat4 seaModel = glm::mat4(1.0f);
-    seaModel = glm::scale(seaModel, glm::vec3(2000.0f, 1.0f, 2000.0f));
+    seaModel = glm::scale(seaModel, glm::vec3(5000.0f, 1.0f, 5000.0f));
     seaModel = glm::translate(seaModel, seaPosition);
     terrainData.terrainShader.setMat4("model", seaModel);
     terrainData.terrainShader.setVec3("color", glm::vec3(0.0f, 0.0f, 1.0f));
@@ -300,12 +310,12 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
 void updateObjects(SunData& sunData, float dt) {
     static float t = 0.0f;
     t += dt;
-    sunData.position.x = 1024.0f * cosf(0.5f * t);
-    sunData.position.y = 800.0f * sinf(0.5f * t);
+    sunData.position.x = 2048.0f * cosf(0.25f * t);
+    sunData.position.y = 1600.0f * sinf(0.25f * t);
     sunStrength = sunData.position.y / 500.0f;
     if (sunStrength < 0.0f) sunStrength = 0.0f;
 
-    seaPosition.y = 50.0f * sinf(0.125f * t) - 30.0f;
+    seaPosition.y = 200.0f * sinf(0.125f * t) - 500.0f;
 }
 
 void update(GLFWwindow*& window, const TerrainData& terrainData, SunData& sunData) {
@@ -336,7 +346,7 @@ int main()
 
     // glfw window creation
     // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "TerrainPlane", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -361,7 +371,7 @@ int main()
 
     glEnable(GL_DEPTH_TEST);
     
-    HeightMap heightMap(1024 + 1);
+    HeightMap heightMap(2048 + 1);
     //HeightMap heightMap(4 + 1);
     HeightMapData heightMapData = heightMap.getData();
     VerticesData vertsData = getVerticesFromHeightMap(heightMapData.data, heightMapData.width);
