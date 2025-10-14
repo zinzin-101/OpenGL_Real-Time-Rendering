@@ -122,6 +122,12 @@ public:
             Zoom = 90.0f;
     }
 
+    void SetFrontVector(glm::vec3 front) {
+        Front = glm::normalize(front);
+        Right = glm::normalize(glm::cross(Front, WorldUp)); 
+        Up = glm::normalize(glm::cross(Right, Front));
+    }
+
 private:
     // calculates the front vector from the Camera's (updated) Euler Angles
     void updateCameraVectors()

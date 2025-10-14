@@ -9,6 +9,7 @@
 #include <learnopengl/filesystem.h>
 #include <learnopengl/shader_m.h>
 #include <learnopengl/camera.h>
+#include <learnopengl/model.h>
 
 #include <iostream>
 
@@ -49,6 +50,22 @@ glm::vec3 seaPosition = glm::vec3();
 
 float sunStrength = 1.0f;
 
+Model* plane;
+Shader* planeShader;
+glm::vec3 planePosition = glm::vec3(0.0f, 75.0f, 0.0f);
+glm::vec3 planeForward = glm::vec3(0.0f, 0.0f, 1.0f);
+glm::vec3 planeUp = glm::vec3(0.0f, 1.0f, 0.0f);
+glm::vec3 planeRight = glm::vec3(1.0f, 0.0f, 0.0f);
+float planeSpeed = 100.0f;
+float pitchRate = 75.0f;
+float yawRate = 50.0f;
+float rollRate = 100.0f;
+float camDistanceFromPlane = 50.0f;
+void yawPlane(float deg);
+void pitchPlane(float deg);
+void rollPlane(float deg);
+void updateCamAfterPlane();
+
 void initTerrain(GLuint& terrainVAO, GLuint& terrainVBO, GLuint& terrainEBO, const VerticesData& verticesData);
 void initSun(GLuint& sunVAO, GLuint& sunVBO, GLuint& sunEBO);
 void initSea(GLuint& seaVAO, GLuint& seaVBO, GLuint& seaEBO);
@@ -74,6 +91,57 @@ bool firstMouse = true;
 float lastFrame = 0.0f;
 
 const float PI = 3.14159265358979323846;
+
+void yawPlane(float deg) {
+    glm::vec3 axis = glm::normalize(planeUp);
+    float angle = glm::radians(deg);
+    glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), angle, axis);
+    glm::vec4 forward = rotMat * glm::vec4(planeForward, 1.0f);
+    glm::vec4 up = rotMat * glm::vec4(planeUp, 1.0f);
+    glm::vec4 right = rotMat * glm::vec4(planeRight, 1.0f);
+
+    planeForward = forward;
+    planeUp = up;
+    planeRight = right;
+
+    updateCamAfterPlane();
+}
+
+void pitchPlane(float deg){
+    glm::vec3 axis = glm::normalize(planeRight);
+    float angle = glm::radians(deg);
+    glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), angle, axis);
+    glm::vec4 forward = rotMat * glm::vec4(planeForward, 1.0f);
+    glm::vec4 up = rotMat * glm::vec4(planeUp, 1.0f);
+    glm::vec4 right = rotMat * glm::vec4(planeRight, 1.0f);
+
+    planeForward = forward;
+    planeUp = up;
+    planeRight = right;
+
+    updateCamAfterPlane();
+}
+
+void rollPlane(float deg){
+    glm::vec3 axis = glm::normalize(planeForward);
+    float angle = glm::radians(deg);
+    glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), angle, axis);
+    glm::vec4 forward = rotMat * glm::vec4(planeForward, 1.0f);
+    glm::vec4 up = rotMat * glm::vec4(planeUp, 1.0f);
+    glm::vec4 right = rotMat * glm::vec4(planeRight, 1.0f);
+
+    planeForward = forward;
+    planeUp = up;
+    planeRight = right;
+
+    updateCamAfterPlane();
+}
+
+void updateCamAfterPlane() {
+    camera.Front = planeForward;
+    camera.Right = planeRight;
+    camera.WorldUp = planeUp;
+}
 
 void initSphere() {
     initSphereVertices();
@@ -305,6 +373,21 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
     sunModel = glm::scale(sunModel, glm::vec3(100.0f, 100.0f, 100.0f));
     sunData.sunShader.setMat4("model", sunModel);
     drawSun(sunData.sunVAO);
+
+    planeShader->use();
+    planeShader->setMat4("projection", projection);
+    planeShader->setMat4("view", view);
+    glm::mat4 planeModel = glm::mat4(1.0f);
+    glm::mat4 rotMat(
+        glm::vec4(planeRight, 0.0f),
+        glm::vec4(planeUp, 0.0f),
+        glm::vec4(planeForward, 0.0f),
+        glm::vec4(0.0f, 0.0f, 0.0f, 1.0f) 
+    );
+    planeModel = glm::translate(glm::mat4(1.0f), planePosition) * rotMat * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    planeModel = glm::scale(planeModel, glm::vec3(0.01f));
+    planeShader->setMat4("model", planeModel);
+    plane->Draw(*planeShader);
 }
 
 void updateObjects(SunData& sunData, float dt) {
@@ -316,6 +399,13 @@ void updateObjects(SunData& sunData, float dt) {
     if (sunStrength < 0.0f) sunStrength = 0.0f;
 
     seaPosition.y = 200.0f * sinf(0.125f * t) - 500.0f;
+
+    planePosition += glm::normalize(planeForward) * planeSpeed * dt;
+    glm::vec3 camPos = planePosition - (planeForward * camDistanceFromPlane);
+    glm::vec3 camLook = planePosition - camPos;
+    camPos += planeUp * 10.0f;
+    camera.Position = camPos;
+    camera.SetFrontVector(camLook);
 }
 
 void update(GLFWwindow*& window, const TerrainData& terrainData, SunData& sunData) {
@@ -400,6 +490,11 @@ int main()
 
     initSea(seaVAO, seaVBO, seaEBO);
 
+    Model planeModel(FileSystem::getPath("resources/objects/airplane/airplane.obj"));
+    Shader planeshader("PlaneVertexShader.vs", "PlaneFragmentShader.fs");
+    planeShader = &planeshader;
+    plane = &planeModel;
+
     while (!glfwWindowShouldClose(window))
     {
         update(window, terrainData, sunData);
@@ -419,37 +514,37 @@ void processInput(GLFWwindow *window, float dt)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
+    //glm::vec3 movement = glm::vec3();
     //if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    //    camera.ProcessKeyboard(FORWARD, dt);
+    //    movement.z += 1.0f;
     //if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-    //    camera.ProcessKeyboard(BACKWARD, dt);
+    //    movement.z -= 1.0f;
     //if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-    //    camera.ProcessKeyboard(LEFT, dt);
+    //    movement.x -= 1.0f;
     //if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-    //    camera.ProcessKeyboard(RIGHT, dt);
+    //    movement.x += 1.0f;
     //if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-    //    camera.ProcessKeyboard(UP, dt);
+    //    movement.y += 1.0f;
     //if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-    //    camera.ProcessKeyboard(DOWN, dt);
+    //    movement.y -= 1.0f;
 
-    glm::vec3 movement = glm::vec3();
+    //if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+    //    movement *= speedMultiplier;
+    //movement *= moveSpeed;
+    //camera.MyProcessKeyboard(movement, dt);
+
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        movement.z += 1.0f;
+        pitchPlane(pitchRate * dt);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        movement.z -= 1.0f;
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        movement.x -= 1.0f;
+        pitchPlane(-pitchRate * dt);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        movement.x += 1.0f;
+        rollPlane(rollRate * dt);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        rollPlane(-rollRate * dt);
     if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-        movement.y += 1.0f;
+        yawPlane(-yawRate * dt);
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-        movement.y -= 1.0f;
-
-    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        movement *= speedMultiplier;
-    movement *= moveSpeed;
-    camera.MyProcessKeyboard(movement, dt);
+        yawPlane(yawRate * dt);
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -481,7 +576,7 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     lastX = xpos;
     lastY = ypos;
 
-    camera.ProcessMouseMovement(xoffset, yoffset);
+    //camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
