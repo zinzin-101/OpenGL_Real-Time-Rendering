@@ -258,7 +258,7 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
 
     // lighting from sun
     terrainData.terrainShader.setVec3("color", glm::vec3(1.0f, 0.5f, 0.2f));
-    terrainData.terrainShader.setFloat("shininess", 50.0f);
+    terrainData.terrainShader.setFloat("shininess", 30.0f);
     terrainData.terrainShader.setVec3("viewPos", camera.Position);
     terrainData.terrainShader.setVec3("pointLights[0].position", sunData.position);
     terrainData.terrainShader.setVec3("pointLights[0].ambient", sunStrength * glm::vec3(0.9f) + glm::vec3(0.3f));
