@@ -24,29 +24,37 @@ void processInput(GLFWwindow *window, float dt);
 unsigned int loadTexture(const char *path);
 
 struct TerrainData {
-    TerrainData(const VerticesData& verticesData, const GLuint& vao, const GLuint& vbo, const GLuint& ebo, const Shader& terrainShader): 
+    TerrainData(VerticesData& verticesData, GLuint& vao, GLuint& vbo, GLuint& ebo, Shader& terrainShader): 
         verticesData(verticesData), terrainVAO(vao), terrainVBO(vbo), terrainEBO(ebo), terrainShader(terrainShader) {}
-    const VerticesData& verticesData;
-    const GLuint& terrainVAO;
-    const GLuint& terrainVBO;
-    const GLuint& terrainEBO;
-    const Shader& terrainShader;
+    VerticesData& verticesData;
+    GLuint& terrainVAO;
+    GLuint& terrainVBO;
+    GLuint& terrainEBO;
+    Shader& terrainShader;
 };
 
 struct SunData {
-    SunData(const GLuint& sunVAO, const GLuint& sunVBO, const GLuint& sunEBO, const Shader& sunShader, glm::vec3& position):
+    SunData(GLuint& sunVAO, GLuint& sunVBO, GLuint& sunEBO, Shader& sunShader, glm::vec3& position):
     sunVAO(sunVAO), sunVBO(sunVBO), sunEBO(sunEBO), sunShader(sunShader), position(position) {}
     glm::vec3& position;
-    const GLuint& sunVAO;
-    const GLuint& sunVBO;
-    const GLuint& sunEBO;
-    const Shader& sunShader;
+    GLuint& sunVAO;
+    GLuint& sunVBO;
+    GLuint& sunEBO;
+    Shader& sunShader;
 };
+
+float maxTerrainHeight;
+float minTerrainHeight;
+
+float maxSeaHeight;
+float minSeaHeight;
 
 GLuint seaVAO;
 GLuint seaVBO;
 GLuint seaEBO;
 glm::vec3 seaPosition = glm::vec3();
+VerticesData* seaVertsData;
+
 
 float sunStrength = 1.0f;
 
@@ -72,15 +80,15 @@ void pitchPlane(float deg);
 void rollPlane(float deg);
 void updateCamAfterPlane();
 
-void initTerrain(GLuint& terrainVAO, GLuint& terrainVBO, GLuint& terrainEBO, const VerticesData& verticesData);
+void initTerrain(GLuint& terrainVAO, GLuint& terrainVBO, GLuint& terrainEBO, VerticesData& verticesData);
 void initSun(GLuint& sunVAO, GLuint& sunVBO, GLuint& sunEBO);
 void initSea(GLuint& seaVAO, GLuint& seaVBO, GLuint& seaEBO);
 void updateObjects(SunData& sunData, float dt);
-void update(GLFWwindow*& window, const TerrainData& terrainData, SunData& sunData);
-void render(const TerrainData& terrainData, const SunData& sunData);
-void drawTerrain(GLuint& terrainVAO, const VerticesData& verticesData);
-void drawSun(const GLuint& sunVAO);
-void drawSea(const GLuint& seaVAO);
+void update(GLFWwindow*& window, TerrainData& terrainData, SunData& sunData);
+void render(TerrainData& terrainData, SunData& sunData);
+void drawTerrain(GLuint& terrainVAO, VerticesData& verticesData);
+void drawSun(GLuint& sunVAO);
+void drawSea(GLuint& seaVAO);
 
 // settings
 const unsigned int SCR_WIDTH = 1600;
@@ -201,7 +209,7 @@ void initSphereIndices() {
     }
 }
 
-void initTerrain(GLuint& terrainVAO, GLuint& terrainVBO, GLuint& terrainEBO, const VerticesData& verticesData) {
+void initTerrain(GLuint& terrainVAO, GLuint& terrainVBO, GLuint& terrainEBO, VerticesData& verticesData) {
     // bind VAO
     glGenVertexArrays(1, &terrainVAO);
     glBindVertexArray(terrainVAO); 
@@ -296,7 +304,7 @@ void initSea(GLuint& seaVAO, GLuint& seaVBO, GLuint& seaEBO) {
     //);
 }
 
-void drawTerrain(const GLuint& terrainVAO, const VerticesData& verticesData) {
+void drawTerrain(GLuint& terrainVAO, VerticesData& verticesData) {
     glBindVertexArray(terrainVAO);
     for (unsigned int i = 0; i < verticesData.stripsCount; i++) {
         glDrawElements(
@@ -308,18 +316,18 @@ void drawTerrain(const GLuint& terrainVAO, const VerticesData& verticesData) {
     }
 }
 
-void drawSun(const GLuint& sunVAO) {
+void drawSun(GLuint& sunVAO) {
     glBindVertexArray(sunVAO);
     glDrawElements(GL_TRIANGLES, SphereFaceIndicesCount * 6, GL_UNSIGNED_INT, 0);
 }
 
-void drawSea(const GLuint& seaVAO) {
+void drawSea(GLuint& seaVAO) {
     glBindVertexArray(seaVAO);
     //glDrawElements(GL_TRIANGLES, SquareFaceIndicesCount * 3, GL_UNSIGNED_INT, 0);
     glDrawArrays(GL_TRIANGLES, 0, 36);
 }
 
-void render(const TerrainData& terrainData, const SunData& sunData) {
+void render(TerrainData& terrainData, SunData& sunData) {
     glClearColor(0.678f, 0.847f, 0.902f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -329,6 +337,11 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
     glm::mat4 view = camera.GetViewMatrix();
     terrainData.terrainShader.setMat4("projection", projection);
     terrainData.terrainShader.setMat4("view", view);
+    terrainData.terrainShader.setBool("lerpColor", true);
+    terrainData.terrainShader.setVec3("startColor", glm::vec3(1.0f, 0.5f, 0.2f));
+    terrainData.terrainShader.setVec3("endColor", glm::vec3(0.588f, 0.294f, 0.0f));
+    terrainData.terrainShader.setFloat("maxHeight", maxTerrainHeight);
+    terrainData.terrainShader.setFloat("minHeight", minTerrainHeight);
 
     // lighting from sun
     terrainData.terrainShader.setVec3("color", glm::vec3(1.0f, 0.5f, 0.2f));
@@ -352,16 +365,16 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
     terrainData.terrainShader.setFloat("pointLights[1].linear", 0.0014f);
     terrainData.terrainShader.setFloat("pointLights[1].quadratic", 0.0001f);
     // spotlight
-    terrainData.terrainShader.setVec3("spotLight.position", planePosition);
-    terrainData.terrainShader.setVec3("spotLight.direction", planeForward);
-    terrainData.terrainShader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
-    terrainData.terrainShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
-    terrainData.terrainShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+    terrainData.terrainShader.setVec3("spotLight.position", planePosition + planeForward * 2.0f);
+    terrainData.terrainShader.setVec3("spotLight.direction", -planeForward);
+    terrainData.terrainShader.setVec3("spotLight.ambient", 50.0f * glm::vec3(0.0f, 0.0f, 0.0f));
+    terrainData.terrainShader.setVec3("spotLight.diffuse", 50.0f * glm::vec3(1.0f, 1.0f, 1.0f));
+    terrainData.terrainShader.setVec3("spotLight.specular", 50.0f * glm::vec3(1.0f, 1.0f, 1.0f));
     terrainData.terrainShader.setFloat("spotLight.constant", 1.0f);
     terrainData.terrainShader.setFloat("spotLight.linear", 0.09f);
     terrainData.terrainShader.setFloat("spotLight.quadratic", 0.032f);
-    terrainData.terrainShader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
-    terrainData.terrainShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
+    terrainData.terrainShader.setFloat("spotLight.cutOff", glm::cos(glm::radians(60.5f)));
+    terrainData.terrainShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(50.0f)));
 
     glm::mat4 model = glm::mat4(1.0f);
     float halfWidth = (terrainData.verticesData.stripsCount + 1) / 2.0f;
@@ -372,15 +385,23 @@ void render(const TerrainData& terrainData, const SunData& sunData) {
 
     // sea
     terrainData.terrainShader.use();
+    terrainData.terrainShader.setBool("lerpColor", true);
+    terrainData.terrainShader.setVec3("startColor", glm::vec3(0.0f, 0.0f, 1.0f));
+    terrainData.terrainShader.setVec3("endColor", glm::vec3(1.0f, 1.0f, 1.0f));
+    terrainData.terrainShader.setFloat("maxHeight", maxSeaHeight);
+    terrainData.terrainShader.setFloat("minHeight", minSeaHeight);
     terrainData.terrainShader.setMat4("projection", projection);
     terrainData.terrainShader.setMat4("view", view);
     glm::mat4 seaModel = glm::mat4(1.0f);
-    seaModel = glm::scale(seaModel, glm::vec3(5000.0f, 1.0f, 5000.0f));
+    //seaModel = glm::scale(seaModel, glm::vec3(5000.0f, 1.0f, 5000.0f));
+    float seaHalfWidth = (seaVertsData->stripsCount + 1) / 2.0f;
+    seaModel = glm::translate(model, HORIZONTAL_SCALING_FACTOR * glm::vec3(-seaHalfWidth, 0.0f, -seaHalfWidth));
+    seaModel = glm::translate(model, 1.0f * glm::vec3(0.0f, 1.0f, 0.0f));
     seaModel = glm::translate(seaModel, seaPosition);
     terrainData.terrainShader.setMat4("model", seaModel);
-    terrainData.terrainShader.setVec3("color", glm::vec3(0.0f, 0.0f, 1.0f));
     terrainData.terrainShader.setFloat("shininess", 128.0f);
-    drawSea(seaVAO);
+    //drawSea(seaVAO);
+    drawTerrain(seaVAO, *seaVertsData);
 
     // sun
     sunData.sunShader.use();
@@ -426,7 +447,7 @@ void updateObjects(SunData& sunData, float dt) {
     camera.SetFrontVector(camLook);
 }
 
-void update(GLFWwindow*& window, const TerrainData& terrainData, SunData& sunData) {
+void update(GLFWwindow*& window, TerrainData& terrainData, SunData& sunData) {
     float currentFrame = static_cast<float>(glfwGetTime());
     float dt = currentFrame - lastFrame;
     lastFrame = currentFrame;
@@ -484,6 +505,37 @@ int main()
     HeightMapData heightMapData = heightMap.getData();
     VerticesData vertsData = getVerticesFromHeightMap(heightMapData.data, heightMapData.width);
 
+    HeightMap seaMap(2048 + 1);
+    HeightMapData seaMapData = seaMap.getData();
+    VerticesData seaData = getVerticesFromHeightMap(seaMapData.data, seaMapData.width, HORIZONTAL_SCALING_FACTOR, 1.0f);
+    seaVertsData = &seaData;
+
+    minTerrainHeight = vertsData.vertsAndNormals[1];
+    maxTerrainHeight = vertsData.vertsAndNormals[1];
+    for (int i = 1; i < vertsData.verticesCount; i++) {
+        float h = vertsData.vertsAndNormals[i * 6 + 2];
+        if (h < minTerrainHeight) {
+            minTerrainHeight = h;
+        }
+        
+        if (h > maxTerrainHeight) {
+            maxTerrainHeight = h;
+        }
+    }
+
+    minSeaHeight = seaVertsData->vertsAndNormals[1];
+    maxSeaHeight = seaVertsData->vertsAndNormals[1];
+    for (int i = 1; i < seaVertsData->verticesCount; i++) {
+        float h = seaVertsData->vertsAndNormals[i * 6 + 2];
+        if (h < minSeaHeight) {
+            minSeaHeight = h;
+        }
+
+        if (h > maxSeaHeight) {
+            maxSeaHeight = h;
+        }
+    }
+
     initSphere();
 
     GLuint terrainVAO;
@@ -506,7 +558,7 @@ int main()
     sunShader.setVec3("color", glm::vec3(1.0f, 1.0f, 0.0f));
     SunData sunData = SunData(sunVAO, sunVBO, sunEBO, sunShader, sunPosition);
 
-    initSea(seaVAO, seaVBO, seaEBO);
+    initTerrain(seaVAO, seaVBO, seaEBO, *seaVertsData);
 
     Model planeModel(FileSystem::getPath("resources/objects/airplane/airplane.obj"));
     Shader planeshader("PlaneVertexShader.vs", "PlaneFragmentShader.fs");
@@ -520,6 +572,9 @@ int main()
 
     if (vertsData.vertsAndNormals != nullptr) delete vertsData.vertsAndNormals;
     if (vertsData.indices != nullptr) delete vertsData.indices;
+
+    if (seaVertsData->vertsAndNormals != nullptr) delete seaVertsData->vertsAndNormals;
+    if (seaVertsData->indices != nullptr) delete seaVertsData->indices;
 
     glfwTerminate();
     return 0;

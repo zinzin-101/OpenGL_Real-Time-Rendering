@@ -16,4 +16,4 @@ struct VerticesData {
 	unsigned int numOfverticesPerStrip;
 };
 
-VerticesData getVerticesFromHeightMap(float** data, unsigned int width);
+VerticesData getVerticesFromHeightMap(float** data, unsigned int width, float horizontalScaling = HORIZONTAL_SCALING_FACTOR, float heightScaling = HEIGHT_SCALING_FACTOR);
