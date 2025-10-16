@@ -436,8 +436,8 @@ void render(TerrainData& terrainData, SunData& sunData) {
         glm::vec4(planeForward, 0.0f),
         glm::vec4(0.0f, 0.0f, 0.0f, 1.0f) 
     );
-    planeModel = glm::translate(glm::mat4(1.0f), planePosition) * rotMat * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    planeModel = glm::scale(planeModel, glm::vec3(0.01f));
+    planeModel = glm::translate(glm::mat4(1.0f), planePosition) * rotMat * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    planeModel = glm::scale(planeModel, glm::vec3(0.25f));
     planeShader->setMat4("model", planeModel);
     plane->Draw(*planeShader);
 }
@@ -573,7 +573,7 @@ int main()
 
     initTerrain(seaVAO, seaVBO, seaEBO, *seaVertsData);
 
-    Model planeModel(FileSystem::getPath("resources/objects/airplane/airplane.obj"));
+    Model planeModel(FileSystem::getPath("resources/objects/fighterjet/fighterjet.obj"));
     Shader planeshader("PlaneVertexShader.vs", "PlaneFragmentShader.fs");
     planeShader = &planeshader;
     plane = &planeModel;
