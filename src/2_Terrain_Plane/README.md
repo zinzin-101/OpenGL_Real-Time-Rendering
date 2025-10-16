@@ -1,1 +1,3 @@
 https://free3d.com/3d-model/fighter-jet-joint-european-v1--189655.html
+
+may take some time to start due to model loading
