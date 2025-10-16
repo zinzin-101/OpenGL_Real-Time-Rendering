@@ -4,6 +4,13 @@ Fly the plane to traverse around the mountainous terrain with day-night cycle. <
 ![](https://github.com/zinzin-101/OpenGL_Real-Time-Rendering/blob/main/src/2_Terrain_Plane/gif/showcase2.gif)
 ![](https://github.com/zinzin-101/OpenGL_Real-Time-Rendering/blob/main/src/2_Terrain_Plane/gif/showcase3.gif)
 
+Control:
+W/S Pitch <br />
+A/D Roll <br />
+Q/E Yaw <br />
+LShift Accelerate <br />
+LCtrl Decelerate <br />
+
 This OpenGL work includes a mountainous terrain, rising and falling tide, the sun, the moon and a fighter jet which the user can control. <br />
 The terrain and ocean tide are randomly generated using Diamond-square algorithm with new height map everytime the program starts. <br />
 
