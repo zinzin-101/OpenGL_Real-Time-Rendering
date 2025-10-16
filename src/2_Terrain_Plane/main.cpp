@@ -81,6 +81,8 @@ void pitchPlane(float deg);
 void rollPlane(float deg);
 void updateCamAfterPlane();
 
+glm::vec3 resetPosition;
+
 void initTerrain(GLuint& terrainVAO, GLuint& terrainVBO, GLuint& terrainEBO, VerticesData& verticesData);
 void initSun(GLuint& sunVAO, GLuint& sunVBO, GLuint& sunEBO);
 void initSea(GLuint& seaVAO, GLuint& seaVBO, GLuint& seaEBO);
@@ -467,7 +469,7 @@ void updateObjects(SunData& sunData, float dt) {
     moonPosition.x = 2100.0f * cosf(0.15f * t + glm::radians(180.0f));
     moonPosition.y = maxSunHeight * sinf(0.15f * t + glm::radians(180.0f));
 
-    seaPosition.y = 200.0f * sinf(0.125f * t) - 500.0f;
+    seaPosition.y = 250.0f * sinf(0.125f * t) - 500.0f;
 
     planePosition += glm::normalize(planeForward) * planeSpeed * dt;
     glm::vec3 camPos = planePosition - (planeForward * camDistanceFromPlane);
@@ -595,6 +597,8 @@ int main()
 
     planePosition.y = maxTerrainHeight * 0.5f;
 
+    resetPosition = planePosition;
+
     while (!glfwWindowShouldClose(window))
     {
         update(window, terrainData, sunData);
@@ -666,6 +670,9 @@ void processInput(GLFWwindow *window, float dt)
     float t = (planeSpeed - minPlaneSpeed) / (maxPlaneSpeed - minPlaneSpeed);
     float fov = (1 - t) * minFov + t * maxFov;
     camera.Zoom = fov;
+
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
+        planePosition = resetPosition;
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
