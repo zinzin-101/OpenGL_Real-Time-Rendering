@@ -445,9 +445,9 @@ void render(TerrainData& terrainData, SunData& sunData) {
 void updateObjects(SunData& sunData, float dt) {
     static float t = 0.0f;
     t += dt;
-    sunData.position.x = 2048.0f * cosf(0.25f * t);
-    sunData.position.y = 1600.0f * sinf(0.25f * t);
-    sunStrength = sunData.position.y / 500.0f;
+    sunData.position.x = 2048.0f * cosf(0.15f * t);
+    sunData.position.y = 2500.0f * sinf(0.15f * t);
+    sunStrength = sunData.position.y / 800;
     if (sunStrength < 0.0f) sunStrength = 0.0f;
 
     seaPosition.y = 200.0f * sinf(0.125f * t) - 500.0f;
