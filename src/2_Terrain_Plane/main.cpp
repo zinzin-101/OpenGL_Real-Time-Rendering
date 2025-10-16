@@ -294,14 +294,14 @@ void initSea(GLuint& seaVAO, GLuint& seaVBO, GLuint& seaEBO) {
     glEnableVertexAttribArray(1);
 
     //// generate EBO
-    //glGenBuffers(1, &seaEBO);
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, seaEBO);
-    //glBufferData(
-    //    GL_ELEMENT_ARRAY_BUFFER,
-    //    SquareFaceIndicesCount * sizeof(unsigned int) * 3,
-    //    SquareFaceIndices,
-    //    GL_STATIC_DRAW
-    //);
+    glGenBuffers(1, &seaEBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, seaEBO);
+    glBufferData(
+        GL_ELEMENT_ARRAY_BUFFER,
+        SquareFaceIndicesCount * sizeof(unsigned int) * 3,
+        SquareFaceIndices,
+        GL_STATIC_DRAW
+    );
 }
 
 void drawTerrain(GLuint& terrainVAO, VerticesData& verticesData) {
@@ -333,15 +333,15 @@ void render(TerrainData& terrainData, SunData& sunData) {
 
     // terrain
     terrainData.terrainShader.use();
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 2000.0f);
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 10000.0f);
     glm::mat4 view = camera.GetViewMatrix();
     terrainData.terrainShader.setMat4("projection", projection);
     terrainData.terrainShader.setMat4("view", view);
     terrainData.terrainShader.setBool("lerpColor", true);
     terrainData.terrainShader.setVec3("startColor", glm::vec3(1.0f, 0.5f, 0.2f));
     terrainData.terrainShader.setVec3("endColor", glm::vec3(0.588f, 0.294f, 0.0f));
-    terrainData.terrainShader.setFloat("maxHeight", maxTerrainHeight);
-    terrainData.terrainShader.setFloat("minHeight", minTerrainHeight);
+    terrainData.terrainShader.setFloat("maxHeight", maxTerrainHeight + HEIGHT_SCALING_FACTOR);
+    terrainData.terrainShader.setFloat("minHeight", minTerrainHeight + HEIGHT_SCALING_FACTOR);
 
     // lighting from sun
     terrainData.terrainShader.setVec3("color", glm::vec3(1.0f, 0.5f, 0.2f));
@@ -373,8 +373,8 @@ void render(TerrainData& terrainData, SunData& sunData) {
     terrainData.terrainShader.setFloat("spotLight.constant", 1.0f);
     terrainData.terrainShader.setFloat("spotLight.linear", 0.09f);
     terrainData.terrainShader.setFloat("spotLight.quadratic", 0.032f);
-    terrainData.terrainShader.setFloat("spotLight.cutOff", glm::cos(glm::radians(60.5f)));
-    terrainData.terrainShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(50.0f)));
+    terrainData.terrainShader.setFloat("spotLight.cutOff", glm::cos(glm::radians(30.5f)));
+    terrainData.terrainShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(45.0f)));
 
     glm::mat4 model = glm::mat4(1.0f);
     float halfWidth = (terrainData.verticesData.stripsCount + 1) / 2.0f;
@@ -388,8 +388,8 @@ void render(TerrainData& terrainData, SunData& sunData) {
     terrainData.terrainShader.setBool("lerpColor", true);
     terrainData.terrainShader.setVec3("startColor", glm::vec3(0.0f, 0.0f, 1.0f));
     terrainData.terrainShader.setVec3("endColor", glm::vec3(1.0f, 1.0f, 1.0f));
-    terrainData.terrainShader.setFloat("maxHeight", maxSeaHeight);
-    terrainData.terrainShader.setFloat("minHeight", minSeaHeight);
+    terrainData.terrainShader.setFloat("maxHeight", maxSeaHeight + 1);
+    terrainData.terrainShader.setFloat("minHeight", minSeaHeight + 1);
     terrainData.terrainShader.setMat4("projection", projection);
     terrainData.terrainShader.setMat4("view", view);
     glm::mat4 seaModel = glm::mat4(1.0f);
@@ -413,7 +413,20 @@ void render(TerrainData& terrainData, SunData& sunData) {
     sunData.sunShader.setMat4("model", sunModel);
     drawSun(sunData.sunVAO);
 
+    // plane
     planeShader->use();
+    // lighting from sun
+    planeShader->setVec3("color", glm::vec3(1.0f, 1.0f, 1.0f));
+    planeShader->setFloat("shininess", 30.0f);
+    planeShader->setVec3("viewPos", camera.Position);
+    planeShader->setVec3("pointLight.position", sunData.position);
+    planeShader->setVec3("pointLight.ambient", sunStrength * glm::vec3(0.2f) + glm::vec3(0.2f));
+    planeShader->setVec3("pointLight.diffuse", sunStrength * glm::vec3(0.2f));
+    planeShader->setVec3("pointLight.specular", sunStrength * glm::vec3(0.1f));
+    planeShader->setFloat("pointLight.constant", 0.4f);
+    planeShader->setFloat("pointLight.linear", 0.0000014f);
+    planeShader->setFloat("pointLight.quadratic", 0.0000001f);
+
     planeShader->setMat4("projection", projection);
     planeShader->setMat4("view", view);
     glm::mat4 planeModel = glm::mat4(1.0f);
@@ -423,7 +436,7 @@ void render(TerrainData& terrainData, SunData& sunData) {
         glm::vec4(planeForward, 0.0f),
         glm::vec4(0.0f, 0.0f, 0.0f, 1.0f) 
     );
-    planeModel = glm::translate(glm::mat4(1.0f), planePosition) * rotMat * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    planeModel = glm::translate(glm::mat4(1.0f), planePosition) * rotMat * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     planeModel = glm::scale(planeModel, glm::vec3(0.01f));
     planeShader->setMat4("model", planeModel);
     plane->Draw(*planeShader);
@@ -564,6 +577,8 @@ int main()
     Shader planeshader("PlaneVertexShader.vs", "PlaneFragmentShader.fs");
     planeShader = &planeshader;
     plane = &planeModel;
+
+    planePosition.y = maxTerrainHeight * 0.5f;
 
     while (!glfwWindowShouldClose(window))
     {
