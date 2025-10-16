@@ -4,7 +4,7 @@ Fly the plane to traverse around the mountainous terrain with day-night cycle. <
 ![](https://github.com/zinzin-101/OpenGL_Real-Time-Rendering/blob/main/src/2_Terrain_Plane/gif/showcase2.gif)
 ![](https://github.com/zinzin-101/OpenGL_Real-Time-Rendering/blob/main/src/2_Terrain_Plane/gif/showcase3.gif)
 
-Control:
+Control: <br />
 W/S Pitch <br />
 A/D Roll <br />
 Q/E Yaw <br />
