@@ -55,7 +55,8 @@ GLuint seaEBO;
 glm::vec3 seaPosition = glm::vec3();
 VerticesData* seaVertsData;
 
-
+glm::vec3 moonPosition(0.0f, -5.0f, 0.0f);
+float maxSunHeight = 2500.0f;
 float sunStrength = 1.0f;
 
 Model* plane;
@@ -328,7 +329,11 @@ void drawSea(GLuint& seaVAO) {
 }
 
 void render(TerrainData& terrainData, SunData& sunData) {
-    glClearColor(0.678f, 0.847f, 0.902f, 1.0f);
+    static glm::vec4 lightBlue(0.678f, 0.847f, 0.902f, 1.0f);
+    static glm::vec4 darkBlue(0.0f, 0.0f, 0.545f, 1.0f);
+    float t = (sunData.position.y - (-maxSunHeight)) / (maxSunHeight - (-maxSunHeight));
+    glm::vec4 clearColor = (1.0f - t) * darkBlue + t * lightBlue;
+    glClearColor(clearColor.x, clearColor.y, clearColor.z, clearColor.w);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // terrain
@@ -405,12 +410,21 @@ void render(TerrainData& terrainData, SunData& sunData) {
 
     // sun
     sunData.sunShader.use();
+    sunData.sunShader.setVec3("color", glm::vec3(1.0f, 1.0f, 0.0f));
     sunData.sunShader.setMat4("projection", projection);
     sunData.sunShader.setMat4("view", view);
     glm::mat4 sunModel = glm::mat4(1.0f);
     sunModel = glm::translate(sunModel, sunData.position);
     sunModel = glm::scale(sunModel, glm::vec3(100.0f, 100.0f, 100.0f));
     sunData.sunShader.setMat4("model", sunModel);
+    drawSun(sunData.sunVAO);
+
+    // moon
+    sunData.sunShader.setVec3("color", glm::vec3(1.0f, 1.0f, 1.0f));
+    glm::mat4 moonModel = glm::mat4(1.0f);
+    moonModel = glm::translate(moonModel, moonPosition);
+    moonModel = glm::scale(moonModel, glm::vec3(50.0f, 50.0f, 50.0f));
+    sunData.sunShader.setMat4("model", moonModel);
     drawSun(sunData.sunVAO);
 
     // plane
@@ -445,10 +459,13 @@ void render(TerrainData& terrainData, SunData& sunData) {
 void updateObjects(SunData& sunData, float dt) {
     static float t = 0.0f;
     t += dt;
-    sunData.position.x = 2048.0f * cosf(0.15f * t);
-    sunData.position.y = 2500.0f * sinf(0.15f * t);
+    sunData.position.x = 2100.0f * cosf(0.15f * t);
+    sunData.position.y = maxSunHeight * sinf(0.15f * t);
     sunStrength = sunData.position.y / 800;
     if (sunStrength < 0.0f) sunStrength = 0.0f;
+
+    moonPosition.x = 2100.0f * cosf(0.15f * t + glm::radians(180.0f));
+    moonPosition.y = maxSunHeight * sinf(0.15f * t + glm::radians(180.0f));
 
     seaPosition.y = 200.0f * sinf(0.125f * t) - 500.0f;
 
@@ -567,8 +584,6 @@ int main()
     GLuint sunEBO;
     initSun(sunVAO, sunVBO, sunEBO);
     Shader sunShader("LightSphere.vs", "LightSphere.fs");
-    sunShader.use();
-    sunShader.setVec3("color", glm::vec3(1.0f, 1.0f, 0.0f));
     SunData sunData = SunData(sunVAO, sunVBO, sunEBO, sunShader, sunPosition);
 
     initTerrain(seaVAO, seaVBO, seaEBO, *seaVertsData);
