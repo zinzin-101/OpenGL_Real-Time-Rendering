@@ -62,7 +62,6 @@ int main()
 
 
     Game game(camera);
-    game.init();
 
     // render loop
     // -----------

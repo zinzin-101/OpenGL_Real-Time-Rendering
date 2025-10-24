@@ -9,10 +9,12 @@ Game::Game(Camera& camera):
     shader("vertex.vs", "fragment.fs"),
     outlineShader("collider_outline.vs", "collider_outline.fs"),
     skyboxShader("skybox.vs", "skybox.fs"),
-    tempModel1(FileSystem::getPath("resources/objects/f22/F22Raptor.obj")),
-    tempModel2(FileSystem::getPath("resources/objects/missile/AIM120D.obj")) {
+    f22Model(FileSystem::getPath("resources/objects/f22/F22Raptor.obj")),
+    missileModel(FileSystem::getPath("resources/objects/missile/AIM120D.obj")),
+    mig29Model(FileSystem::getPath("resources/objects/mig29/MiG-29.obj"))
+{
+    init();
 }
-
 
 unsigned int Game::getCubeMapTexture(std::string cubeMapPath[]) {
     unsigned int cubeMapTex;
@@ -85,26 +87,88 @@ void Game::initSkybox() {
 }
 
 void Game::initColliderOutline() {
-    float cubeVerts[8 * 3];
-    for (int i = 0; i < 8 * 3; i++) {
-        cubeVerts[i] = SKYBOX_VERTICES[i] * 0.5f;
-    }
-
     glGenVertexArrays(1, &outlineVAO);
-    glBindVertexArray(outlineVAO);
     glGenBuffers(1, &outlineVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 8 * 3, cubeVerts, GL_STATIC_DRAW);
+    glGenBuffers(1, &outlineEBO);
+
+    glBindVertexArray(outlineVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, outlineVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(CUBE_VERTICES), CUBE_VERTICES, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, outlineEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(CUBE_INDICES), CUBE_INDICES, GL_STATIC_DRAW);
+
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
 }
 
 void Game::init() {
     initSkybox();
     initColliderOutline();
+
+    Plane& plane = getNewPlane();
+    plane.position = glm::vec3(-2, 0, 0);
+    plane.model = &f22Model;
+    BoxCollider collider;
+    collider.offset = glm::vec3();
+    collider.size = glm::vec3(1.0f);
+    collider.ownerId = plane.id;
+    colliders.emplace_back(collider);
+    playerId = plane.id;
+
+    Plane& p = getNewPlane();
+    p.model = &mig29Model;
+    collider.ownerId = p.id;
+    colliders.emplace_back(collider);
+
+    Plane& p2 = getNewPlane();
+    p2.position = glm::vec3(2, 0, 0);
+    p2.model = &f22Model;
+    collider.ownerId = p2.id;
+    colliders.emplace_back(collider);
+}
+
+Plane& Game::getNewPlane() {
+    Plane plane;
+    plane.id = planes.size();
+    plane.position = glm::vec3();
+    plane.forward = glm::vec3(0, 0, 1);
+    plane.right = glm::vec3(1, 0, 0);
+    plane.up = glm::vec3(0, 1, 0);
+    plane.speed = 0.0f;
+
+    planes.emplace_back(plane);
+
+    return planes[plane.id];
+}
+
+Plane& Game::getNewPlaneWithCollider() {
+    Plane& plane = getNewPlane();
+    BoxCollider collider;
+    collider.offset = glm::vec3();
+    collider.size = glm::vec3(1.0f);
+    collider.ownerId = plane.id;
+    colliders.emplace_back(collider);
+}
+
+Plane& Game::getPlaneFromId(unsigned int id) {
+    return planes[id];
 }
 
 void Game::update(float dt) {
+    int numOfColliders = colliders.size();
+    for (int i = 0; i < numOfColliders; i++) {
+        for (int j = i + 1; j < numOfColliders; j++) {
+            BoxCollider& col1 = colliders[i];
+            BoxCollider& col2 = colliders[j];
 
+            if (isColliding(col1, col2)) {
+                std::cout << "is colliding" << std::endl;
+            }
+        }
+    }
 }
 
 void Game::render(float dt) {
@@ -119,19 +183,28 @@ void Game::render(float dt) {
     glm::mat4 view = camera.GetViewMatrix();
     shader.setMat4("projection", projection);
     shader.setMat4("view", view);
+    
+    for (const Plane& plane : planes) {
+        glm::mat4 rotMat(
+            glm::vec4(plane.right, 0.0f),
+            glm::vec4(plane.up, 0.0f),
+            glm::vec4(plane.forward, 0.0f),
+            glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
+        );
 
-    // render the loaded model
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-    model = glm::scale(model, glm::vec3(0.25f, 0.25f, 0.25f));	// it's a bit too big for our scene, so scale it down
-    shader.setMat4("model", model);
-    tempModel1.Draw(shader);
+        glm::mat4 model = 
+            glm::translate(glm::mat4(1.0f), plane.position) * 
+            rotMat *
+            glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) *
+            glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f));
+        shader.setMat4("model", model);
+        plane.model->Draw(shader);
+    }
 
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-    model = glm::scale(model, glm::vec3(0.25f, 0.25f, 0.25f));
-    shader.setMat4("model", model);
-    tempModel2.Draw(shader);
+    // collider
+    for (const BoxCollider& collider : colliders) {
+        drawCollider(collider);
+    }
 
     // skybox
     skyboxShader.use();
@@ -154,9 +227,29 @@ void Game::drawSkybox() {
     glDepthFunc(GL_LESS);
 }
 
+void Game::drawCollider(const BoxCollider& collider) {
+    outlineShader.use();
+
+    const Plane& plane = getPlaneFromId(collider.ownerId);
+
+    glm::mat4 model = glm::translate(glm::mat4(1.0f), collider.offset + plane.position) * glm::scale(glm::mat4(1.0f), collider.size);
+    glm::mat4 view = camera.GetViewMatrix();
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    outlineShader.setMat4("model", model);
+    outlineShader.setMat4("view", view);
+    outlineShader.setMat4("projection", projection);
+    outlineShader.setVec4("lineColor", glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+    glBindVertexArray(outlineVAO);
+    glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
+    //glDrawElements(GL_TRIANGLES, 24, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+}
+
 bool Game::isColliding(const BoxCollider& c1, const BoxCollider& c2) {
-    glm::vec3 pos1 = c1.offset + c1.owner->position;
-    glm::vec3 pos2 = c2.offset + c2.owner->position;
+    const Plane& p1 = getPlaneFromId(c1.ownerId);
+    const Plane& p2 = getPlaneFromId(c2.ownerId);
+    glm::vec3 pos1 = c1.offset + p1.position;
+    glm::vec3 pos2 = c2.offset + p2.position;
     glm::vec3 halfSize1 = c1.size / 2.0f;
     glm::vec3 halfSize2 = c2.size / 2.0f;
 
@@ -168,11 +261,6 @@ bool Game::isColliding(const BoxCollider& c1, const BoxCollider& c2) {
     bool collided = xCollided && yCollided && zCollided;
 
     return collided;
-}
-
-void Game::drawCollider(const BoxCollider& collider) {
-
-
 }
 
 void Game::yawPlane(Plane& plane, float deg) {

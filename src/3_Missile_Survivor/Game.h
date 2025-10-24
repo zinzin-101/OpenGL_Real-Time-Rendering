@@ -31,6 +31,7 @@ const float MAX_FOV = 90.0f;
 const float MIN_FOV = 60.0f;
 
 struct Plane {
+	unsigned int id;
 	Model* model;
 	glm::vec3 position;
 	glm::vec3 forward;
@@ -40,7 +41,7 @@ struct Plane {
 };
 
 struct BoxCollider {
-	Plane* owner;
+	unsigned int ownerId;
 	glm::vec3 offset;
 	glm::vec3 size;
 };
@@ -50,25 +51,34 @@ class Game {
 		Shader shader;
 		Shader outlineShader;
 		Shader skyboxShader;
-		Model tempModel1;
-		Model tempModel2;
+		Model f22Model;
+		Model mig29Model;
+		Model missileModel;
 
 		unsigned int cubeMapTexture;
 		GLuint skyboxVAO, skyboxVBO, skyboxEBO;
 
-		GLuint outlineVAO, outlineVBO;
+		GLuint outlineVAO, outlineVBO, outlineEBO;
 
+		std::vector<Plane> planes;
 		std::vector<BoxCollider> colliders;
 
+		unsigned int playerId;
+
 		Camera& camera;
+
+		void initSkybox();
+		void initColliderOutline();
+		void init();
+
+		Plane& getNewPlane();
+		Plane& getPlaneFromId(unsigned int id);
+		Plane& getNewPlaneWithCollider();
 
 	public:
 		Game(Camera& camera);
 		unsigned int getCubeMapTexture(std::string cubeMapPath[]);
-		void initSkybox();
-		void initColliderOutline();
-
-		void init();
+		
 		void render(float dt);
 		void update(float dt);
 

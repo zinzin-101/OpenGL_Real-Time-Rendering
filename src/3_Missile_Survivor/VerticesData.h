@@ -35,3 +35,23 @@ unsigned int SKYBOX_INDICES[] =
 	3, 7, 6,
 	6, 2, 3
 };
+
+const float CUBE_VERTICES[] = {
+	-0.5f, -0.5f, -0.5f, // 0
+	 0.5f, -0.5f, -0.5f, // 1
+	 0.5f,  0.5f, -0.5f, // 2
+	-0.5f,  0.5f, -0.5f, // 3
+	-0.5f, -0.5f,  0.5f, // 4
+	 0.5f, -0.5f,  0.5f, // 5
+	 0.5f,  0.5f,  0.5f, // 6
+	-0.5f,  0.5f,  0.5f  // 7
+};
+
+const unsigned int CUBE_INDICES[] = {
+	// bottom square
+	0, 1, 1, 2, 2, 3, 3, 0,
+	// top square
+	4, 5, 5, 6, 6, 7, 7, 4,
+	// vertical edges
+	0, 4, 1, 5, 2, 6, 3, 7
+};
