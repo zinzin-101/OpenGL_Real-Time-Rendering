@@ -5,6 +5,8 @@
 // timing
 float lastFrame = 0.0f;
 
+extern unsigned int cubeMapTexture;
+extern Shader* skyboxShader;
 extern Shader* tempShader;
 extern Model* tempModel1;
 extern Model* tempModel2;
@@ -47,12 +49,25 @@ int main()
         return -1;
     }
 
-    // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
-    stbi_set_flip_vertically_on_load(true);
-
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
+
+    std::string cubeMapFaces[6] =
+    {
+        FileSystem::getPath("resources/objects/skybox/right.jpg"),
+        FileSystem::getPath("resources/objects/skybox/left.jpg"),
+        FileSystem::getPath("resources/objects/skybox/top.jpg"),
+        FileSystem::getPath("resources/objects/skybox/bottom.jpg"),
+        FileSystem::getPath("resources/objects/skybox/front.jpg"),
+        FileSystem::getPath("resources/objects/skybox/back.jpg")
+    };
+    cubeMapTexture = getCubeMapTexture(cubeMapFaces);
+    Shader skyShader("skybox.vs", "skybox.fs");
+    skyboxShader = &skyShader;
+
+    // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
+    stbi_set_flip_vertically_on_load(true);
 
     // build and compile shaders
     // -------------------------
@@ -66,6 +81,8 @@ int main()
     tempModel1 = &ourModel;
     tempModel2 = &ourModel2;
     
+    initSkybox();
+
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
