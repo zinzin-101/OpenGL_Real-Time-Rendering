@@ -4,6 +4,16 @@
 // timing
 float lastFrame = 0.0f;
 
+Camera camera;
+float lastX;
+float lastY;
+bool firstMouse;
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void processInput(GLFWwindow* window, float dt);
+
 int main()
 {
     // glfw: initialize and configure
@@ -26,6 +36,7 @@ int main()
         glfwTerminate();
         return -1;
     }
+
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
@@ -49,19 +60,9 @@ int main()
     // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
     stbi_set_flip_vertically_on_load(true);
 
-    Shader _shader("vertex.vs", "fragment.fs");
-    Shader _outlineShader("collider_outline.vs", "collider_outline.fs");
-    Shader _skyboxShader("skybox.vs", "skybox.fs");
-    Model _tempModel1(FileSystem::getPath("resources/objects/f22/F22Raptor.obj"));
-    Model _tempModel2(FileSystem::getPath("resources/objects/missile/AIM120D.obj"));
 
-    setShader(&_shader);
-    setOutlineShader(&_outlineShader);
-    setSkyboxShader(&_skyboxShader);
-    setModel1(&_tempModel1);
-    setModel2(&_tempModel2);
-
-    init();
+    Game game(camera);
+    game.init();
 
     // render loop
     // -----------
@@ -77,11 +78,11 @@ int main()
         // -----
         processInput(window, dt);
 
-        update(dt);
+        game.update(dt);
 
         // render
         // ------
-        render(dt);
+        game.render(dt);
 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -94,4 +95,67 @@ int main()
     // ------------------------------------------------------------------
     glfwTerminate();
     return 0;
+}
+
+// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
+// ---------------------------------------------------------------------------------------------------------
+void processInput(GLFWwindow* window, float dt)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+
+    glm::vec3 movement = glm::vec3();
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        movement += glm::vec3(0, 0, 5);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        movement += glm::vec3(0, 0, -5);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        movement += glm::vec3(-5, 0, 0);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        movement += glm::vec3(5, 0, 0);
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+        movement += glm::vec3(0, 5, 0);
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+        movement += glm::vec3(0, -5, 0);
+    camera.MyProcessKeyboard(movement, dt);
+}
+
+// glfw: whenever the window size changed (by OS or user resize) this callback function executes
+// ---------------------------------------------------------------------------------------------
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    // make sure the viewport matches the new window dimensions; note that width and 
+    // height will be significantly larger than specified on retina displays.
+    glViewport(0, 0, width, height);
+}
+
+// glfw: whenever the mouse moves, this callback is called
+// -------------------------------------------------------
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
+{
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+    lastX = xpos;
+    lastY = ypos;
+
+    camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+// glfw: whenever the mouse scroll wheel scrolls, this callback is called
+// ----------------------------------------------------------------------
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
