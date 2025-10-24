@@ -151,6 +151,7 @@ Plane& Game::getNewPlaneWithCollider() {
     collider.size = glm::vec3(1.0f);
     collider.ownerId = plane.id;
     colliders.emplace_back(collider);
+    return plane;
 }
 
 Plane& Game::getPlaneFromId(unsigned int id) {
