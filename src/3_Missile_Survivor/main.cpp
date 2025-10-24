@@ -1,15 +1,8 @@
 #include "Game.h"
 #include <iostream>
-#include <learnopengl/filesystem.h>
 
 // timing
 float lastFrame = 0.0f;
-
-extern unsigned int cubeMapTexture;
-extern Shader* skyboxShader;
-extern Shader* tempShader;
-extern Model* tempModel1;
-extern Model* tempModel2;
 
 int main()
 {
@@ -53,38 +46,22 @@ int main()
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
 
-    std::string cubeMapFaces[6] =
-    {
-        FileSystem::getPath("resources/objects/skybox/right.jpg"),
-        FileSystem::getPath("resources/objects/skybox/left.jpg"),
-        FileSystem::getPath("resources/objects/skybox/top.jpg"),
-        FileSystem::getPath("resources/objects/skybox/bottom.jpg"),
-        FileSystem::getPath("resources/objects/skybox/front.jpg"),
-        FileSystem::getPath("resources/objects/skybox/back.jpg")
-    };
-    cubeMapTexture = getCubeMapTexture(cubeMapFaces);
-    Shader skyShader("skybox.vs", "skybox.fs");
-    skyboxShader = &skyShader;
-
     // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
     stbi_set_flip_vertically_on_load(true);
 
-    // build and compile shaders
-    // -------------------------
-    Shader ourShader("vertex.vs", "fragment.fs");
-    tempShader = &ourShader;
-    // load models
-    // -----------
-    Model ourModel(FileSystem::getPath("resources/objects/f22/F22Raptor.obj"));
-    Model ourModel2(FileSystem::getPath("resources/objects/missile/AIM120D.obj"));
+    Shader _shader("vertex.vs", "fragment.fs");
+    Shader _outlineShader("collider_outline.vs", "collider_outline.fs");
+    Shader _skyboxShader("skybox.vs", "skybox.fs");
+    Model _tempModel1(FileSystem::getPath("resources/objects/f22/F22Raptor.obj"));
+    Model _tempModel2(FileSystem::getPath("resources/objects/missile/AIM120D.obj"));
 
-    tempModel1 = &ourModel;
-    tempModel2 = &ourModel2;
-    
-    initSkybox();
+    setShader(&_shader);
+    setOutlineShader(&_outlineShader);
+    setSkyboxShader(&_skyboxShader);
+    setModel1(&_tempModel1);
+    setModel2(&_tempModel2);
 
-    // draw in wireframe
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    init();
 
     // render loop
     // -----------

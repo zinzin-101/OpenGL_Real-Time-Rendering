@@ -1,5 +1,7 @@
 #include "Game.h"
 #include "VerticesData.h"
+#include <vector>
+#include <cmath>
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -18,13 +20,18 @@ const float CAM_DIST_FROM_PLANE = 50.0f;
 const float MAX_FOV = 90.0f;
 const float MIN_FOV = 60.0f;
 
-Shader* tempShader;
+unsigned int cubeMapTexture;
+GLuint skyboxVAO, skyboxVBO, skyboxEBO;
+
+GLuint outlineVAO, outlineVBO;
+
+vector<BoxCollider> colliders;
+
+Shader* shader;
+Shader* outlineShader;
 Shader* skyboxShader;
 Model* tempModel1;
 Model* tempModel2;
-
-unsigned int cubeMapTexture;
-unsigned int skyboxVAO, skyboxVBO, skyboxEBO;
 
 unsigned int getCubeMapTexture(std::string cubeMapPath[]) {
     unsigned int cubeMapTex;
@@ -69,6 +76,18 @@ unsigned int getCubeMapTexture(std::string cubeMapPath[]) {
 }
 
 void initSkybox() {
+    std::string cubeMapFaces[6] =
+    {
+        FileSystem::getPath("resources/objects/skybox/right.jpg"),
+        FileSystem::getPath("resources/objects/skybox/left.jpg"),
+        FileSystem::getPath("resources/objects/skybox/top.jpg"),
+        FileSystem::getPath("resources/objects/skybox/bottom.jpg"),
+        FileSystem::getPath("resources/objects/skybox/front.jpg"),
+        FileSystem::getPath("resources/objects/skybox/back.jpg")
+    };
+
+    cubeMapTexture = getCubeMapTexture(cubeMapFaces);
+
     glGenVertexArrays(1, &skyboxVAO);
     glGenBuffers(1, &skyboxVBO);
     glGenBuffers(1, &skyboxEBO);
@@ -82,6 +101,20 @@ void initSkybox() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+void initColliderOutline() {
+    float cubeVerts[8 * 3];
+    for (int i = 0; i < 8 * 3; i++) {
+        cubeVerts[i] = SKYBOX_VERTICES[i] * 0.5f;
+    }
+
+    glGenVertexArrays(1, &outlineVAO);
+    glBindVertexArray(outlineVAO);
+    glGenBuffers(1, &outlineVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 8 * 3, cubeVerts, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
 }
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
@@ -147,6 +180,30 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
 
+void setShader(Shader* s){
+    shader = shader;
+}
+
+void setOutlineShader(Shader* s){
+    outlineShader = s;
+}
+
+void setSkyboxShader(Shader* s){
+    skyboxShader = s;
+}
+
+void setModel1(Model* m){
+    tempModel1 = m;
+}
+
+void setModel2(Model* m){
+    tempModel2 = m;
+}
+
+void init() {
+    initSkybox();
+}
+
 void update(float dt) {
 
 }
@@ -156,26 +213,26 @@ void render(float dt) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // don't forget to enable shader before setting uniforms
-    tempShader->use();
+    shader->use();
 
     // view/projection transformations
     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
     glm::mat4 view = camera.GetViewMatrix();
-    tempShader->setMat4("projection", projection);
-    tempShader->setMat4("view", view);
+    shader->setMat4("projection", projection);
+    shader->setMat4("view", view);
 
     // render the loaded model
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
     model = glm::scale(model, glm::vec3(0.25f, 0.25f, 0.25f));	// it's a bit too big for our scene, so scale it down
-    tempShader->setMat4("model", model);
-    tempModel1->Draw(*tempShader);
+    shader->setMat4("model", model);
+    tempModel1->Draw(*shader);
 
     model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
     model = glm::scale(model, glm::vec3(0.25f, 0.25f, 0.25f));
-    tempShader->setMat4("model", model);
-    tempModel2->Draw(*tempShader);
+    shader->setMat4("model", model);
+    tempModel2->Draw(*shader);
 
     // skybox
     skyboxShader->use();
@@ -196,6 +253,28 @@ void drawSkybox() {
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
     glDepthFunc(GL_LESS);
+}
+
+bool isColliding(const BoxCollider& c1, const BoxCollider& c2) {
+    glm::vec3 pos1 = c1.offset + c1.owner->position;
+    glm::vec3 pos2 = c2.offset + c2.owner->position;
+    glm::vec3 halfSize1 = c1.size / 2.0f;
+    glm::vec3 halfSize2 = c2.size / 2.0f;
+
+    // AABB collision detection
+    bool xCollided = abs(pos1.x - pos2.x) < (halfSize1.x + halfSize2.x);
+    bool yCollided = abs(pos1.y - pos2.y) < (halfSize1.y + halfSize2.y);
+    bool zCollided = abs(pos1.z - pos2.z) < (halfSize1.z + halfSize2.z);
+    
+    bool collided = xCollided && yCollided && zCollided;
+
+    return collided;
+}
+
+void drawCollider(const BoxCollider& collider) {
+
+
+
 }
 
 void yawPlane(Plane& plane, float deg) {
