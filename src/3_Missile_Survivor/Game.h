@@ -72,8 +72,8 @@ class Game {
 		void init();
 
 		Plane& getNewPlane();
-		Plane& getPlaneFromId(unsigned int id);
 		Plane& getNewPlaneWithCollider();
+		Plane& getPlaneFromId(unsigned int id);
 
 	public:
 		Game(Camera& camera);
