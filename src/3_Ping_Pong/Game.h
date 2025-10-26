@@ -62,6 +62,7 @@ class Game {
 		Model paddleModel;
 		Model tableModel;
 		Model ballModel;
+		Model floorModel;
 
 		std::map<Model*, glm::mat4> modelToWorld;
 
@@ -100,6 +101,8 @@ class Game {
 
 		void checkCollision();
 		void handleCollision(const BoxCollider& col1, const BoxCollider& col2);
+
+		void rotateObject(Object& obj, glm::vec3 axis, float deg);
 
 	public:
 		Game();

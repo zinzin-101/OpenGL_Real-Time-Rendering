@@ -4,13 +4,14 @@
 #include <vector>
 #include <cmath>
 
-Game::Game():
+Game::Game() :
     shader("vertex.vs", "fragment.fs"),
     outlineShader("collider_outline.vs", "collider_outline.fs"),
     skyboxShader("skybox.vs", "skybox.fs"),
     paddleModel(FileSystem::getPath("resources/objects/paddle/paddle.obj")),
     ballModel(FileSystem::getPath("resources/objects/pingpongball/10539_tennis_ball_L3.obj")),
-    tableModel(FileSystem::getPath("resources/objects/tabletennistable/tableTennisTable.obj"))
+    tableModel(FileSystem::getPath("resources/objects/tabletennistable/tableTennisTable.obj")),
+    floorModel(tableModel)
 {
     init();
 }
@@ -60,12 +61,12 @@ unsigned int Game::getCubeMapTexture(std::string cubeMapPath[]) {
 void Game::initSkybox() {
     std::string cubeMapFaces[6] =
     {
-        FileSystem::getPath("resources/objects/playroomskybox/right.jpg"),
-        FileSystem::getPath("resources/objects/playroomskybox/left.jpg"),
-        FileSystem::getPath("resources/objects/playroomskybox/top.jpg"),
-        FileSystem::getPath("resources/objects/playroomskybox/bottom.jpg"),
-        FileSystem::getPath("resources/objects/playroomskybox/front.jpg"),
-        FileSystem::getPath("resources/objects/playroomskybox/back.jpg")
+        FileSystem::getPath("resources/objects/skybox/right.jpg"),
+        FileSystem::getPath("resources/objects/skybox/left.jpg"),
+        FileSystem::getPath("resources/objects/skybox/top.jpg"),
+        FileSystem::getPath("resources/objects/skybox/bottom.jpg"),
+        FileSystem::getPath("resources/objects/skybox/front.jpg"),
+        FileSystem::getPath("resources/objects/skybox/back.jpg")
     };
 
     cubeMapTexture = getCubeMapTexture(cubeMapFaces);
@@ -133,6 +134,12 @@ void Game::init() {
         glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.5f));
     modelToWorld[&ballModel] = ballToWorld;
 
+    glm::mat4 floorToWorld =
+        glm::scale(glm::mat4(1.0f), glm::vec3(0.2f)) *
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -75.0f, 0.0f)) *
+        glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    modelToWorld[&floorModel] = floorToWorld;
+
     Object& paddle = getNewObject();
     paddle.position = glm::vec3(-2, 5, 0);
     paddle.model = &paddleModel;
@@ -170,11 +177,33 @@ void Game::init() {
 
     Object& leftWall = getNewObject();
     leftWall.name = "LeftWall";
-    leftWall.position = glm::vec3(-8.0f, 0.0f, 0.0f);
+    leftWall.model = &tableModel;
+    rotateObject(leftWall, leftWall.forward, -90.0f);
+    leftWall.position = glm::vec3(-11.0f, 8.0f, 0.0f);
     collider = BoxCollider();
     collider.ownerId = leftWall.id;
-    collider.offset = glm::vec3(-1.0f, 0.0f, 0.0f);
-    collider.size = glm::vec3(2.0f, 30.0f, 30.0f);
+    collider.offset = glm::vec3(0.0f, -1.0f, 0.0f);
+    collider.size = glm::vec3(2.0f, 28.0f, 30.0f);
+    colliders.emplace_back(collider);
+
+    Object& rightWall = getNewObject();
+    rightWall.name = "RightWall";
+    rightWall.model = &tableModel;
+    rotateObject(rightWall, rightWall.forward, 90.0f);
+    rightWall.position = glm::vec3(11.0f, 8.0f, 0.0f);
+    collider = BoxCollider();
+    collider.ownerId = rightWall.id;
+    collider.offset = glm::vec3(0.0f, -1.0f, 0.0f);
+    collider.size = glm::vec3(2.0f, 28.0f, 30.0f);
+    colliders.emplace_back(collider);
+
+    Object& floor = getNewObject();
+    floor.name = "Floor";
+    floor.model = &floorModel;
+    floor.position = glm::vec3(0.0f, -8.5f, 0.0f);
+    collider = BoxCollider();
+    collider.ownerId = floor.id;
+    collider.size = glm::vec3(50.0f, 2.0f, 50.0f);
     colliders.emplace_back(collider);
 }
 
@@ -226,6 +255,18 @@ void Game::checkCollision() {
 
 void Game::handleCollision(const BoxCollider& col1, const BoxCollider& col2) {
 
+}
+
+void Game::rotateObject(Object& obj, glm::vec3 axis, float deg) {
+    float angle = glm::radians(deg);
+    glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), angle, axis);
+    glm::vec4 forward = rotMat * glm::vec4(obj.forward, 1.0f);
+    glm::vec4 up = rotMat * glm::vec4(obj.up, 1.0f);
+    glm::vec4 right = rotMat * glm::vec4(obj.right, 1.0f);
+
+    obj.forward = forward;
+    obj.up = up;
+    obj.right = right;
 }
 
 void Game::update(float dt) {
