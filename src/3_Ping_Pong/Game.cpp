@@ -292,16 +292,19 @@ void Game::handleBallBounce(Object& ball, Object& wall) {
     glm::vec3 wallPos = wall.position;
 
     if (wallPos.x > 0.0f) { // right wall
-        ballPhysics.lastPosition.x = ball.position.x;
+        float displacement = ball.position.x - ballPhysics.lastPosition.x;
         ball.position.x = wall.position.x + wallCol.offset.x + wallCol.size.x * 0.5f + ballCol.offset.x + ballCol.size.x * 0.5f;
+        ballPhysics.lastPosition.x = ball.position.x + displacement;
     }
     else if (wallPos.x < 0.0f) { // left wall
-        ballPhysics.lastPosition.x = ball.position.x;
+        float displacement = ball.position.x - ballPhysics.lastPosition.x;
         ball.position.x = wall.position.x + wallCol.offset.x + wallCol.size.x * 0.5f + ballCol.offset.x + ballCol.size.x * 0.5f;
+        ballPhysics.lastPosition.x = ball.position.x + displacement;
     }
     else if (wallPos.y <= 0.0f) { // table
-        ballPhysics.lastPosition.y = ball.position.y;
+        float displacement = ball.position.y - ballPhysics.lastPosition.y;
         ball.position.y = wall.position.y + wallCol.offset.y + wallCol.size.y * 0.5f + ballCol.offset.y + ballCol.size.y * 0.5f;
+        ballPhysics.lastPosition.y = ball.position.y + displacement;
     }
 }
 
