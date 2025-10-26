@@ -11,6 +11,7 @@
 #include "Camera.h"
 #include "Model.h"
 
+#include <map>
 #include <vector>
 
 // settings
@@ -30,14 +31,13 @@ const float CAM_DIST_FROM_PLANE = 50.0f;
 const float MAX_FOV = 90.0f;
 const float MIN_FOV = 60.0f;
 
-struct Plane {
+struct Object {
 	unsigned int id;
 	Model* model;
 	glm::vec3 position;
 	glm::vec3 forward;
 	glm::vec3 right;
 	glm::vec3 up;
-	float speed;
 };
 
 struct BoxCollider {
@@ -51,16 +51,18 @@ class Game {
 		Shader shader;
 		Shader outlineShader;
 		Shader skyboxShader;
-		Model f22Model;
-		Model mig29Model;
-		Model missileModel;
+		Model paddleModel;
+		Model tableModel;
+		Model ballModel;
+
+		std::map<Model*, glm::mat4> modelToWorld;
 
 		unsigned int cubeMapTexture;
 		GLuint skyboxVAO, skyboxVBO, skyboxEBO;
 
 		GLuint outlineVAO, outlineVBO, outlineEBO;
 
-		std::vector<Plane> planes;
+		std::vector<Object> objects;
 		std::vector<BoxCollider> colliders;
 
 		unsigned int playerId;
@@ -71,9 +73,9 @@ class Game {
 		void initColliderOutline();
 		void init();
 
-		Plane& getNewPlane();
-		Plane& getNewPlaneWithCollider();
-		Plane& getPlaneFromId(unsigned int id);
+		Object& getNewObject();
+		Object& getNewObjectWithCollider();
+		Object& getObjectFromId(unsigned int id);
 
 	public:
 		Game(Camera& camera);
@@ -86,9 +88,4 @@ class Game {
 
 		bool isColliding(const BoxCollider& c1, const BoxCollider& c2);
 		void drawCollider(const BoxCollider& collider);
-
-		void yawPlane(Plane& plane, float deg);
-		void pitchPlane(Plane& plane, float deg);
-		void rollPlane(Plane& plane, float deg);
-		void updatePlayerPlaneCamera(Plane& playerPlane);
 };

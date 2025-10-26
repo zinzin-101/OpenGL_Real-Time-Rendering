@@ -9,9 +9,9 @@ Game::Game(Camera& camera):
     shader("vertex.vs", "fragment.fs"),
     outlineShader("collider_outline.vs", "collider_outline.fs"),
     skyboxShader("skybox.vs", "skybox.fs"),
-    f22Model(FileSystem::getPath("resources/objects/f22/F22Raptor.obj")),
-    missileModel(FileSystem::getPath("resources/objects/missile/AIM120D.obj")),
-    mig29Model(FileSystem::getPath("resources/objects/mig29/MiG-29.obj"))
+    paddleModel(FileSystem::getPath("resources/objects/paddle/paddle.obj")),
+    ballModel(FileSystem::getPath("resources/objects/pingpongball/10539_tennis_ball_L3.obj")),
+    tableModel(FileSystem::getPath("resources/objects/tabletennistable/tableTennisTable.obj"))
 {
     init();
 }
@@ -108,44 +108,58 @@ void Game::init() {
     initSkybox();
     initColliderOutline();
 
-    Plane& plane = getNewPlane();
-    plane.position = glm::vec3(-2, 0, 0);
-    plane.model = &f22Model;
+    glm::mat4 tableToWorld = 
+        glm::scale(glm::mat4(1.0f), glm::vec3(0.01f)) *
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -75.0f, 0.0f)) *
+        glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    modelToWorld[&tableModel] = tableToWorld;
+
+    glm::mat4 paddleToWorld =
+        glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) *
+        glm::scale(glm::mat4(1.0f), glm::vec3(0.015f));
+    modelToWorld[&paddleModel] = paddleToWorld;
+
+    glm::mat4 ballToWorld = 
+        glm::scale(glm::mat4(1.0f), glm::vec3(0.015f));
+    modelToWorld[&ballModel] = ballToWorld;
+
+    Object& paddle = getNewObject();
+    paddle.position = glm::vec3(-2, 0, 0);
+    paddle.model = &paddleModel;
     BoxCollider collider;
     collider.offset = glm::vec3();
     collider.size = glm::vec3(1.0f);
-    collider.ownerId = plane.id;
+    collider.ownerId = paddle.id;
     colliders.emplace_back(collider);
-    playerId = plane.id;
+    playerId = paddle.id;
 
-    Plane& p = getNewPlane();
-    p.model = &mig29Model;
-    collider.ownerId = p.id;
+    Object& table = getNewObject();
+    table.model = &tableModel;
+    collider.ownerId = table.id;
     colliders.emplace_back(collider);
 
-    Plane& p2 = getNewPlane();
-    p2.position = glm::vec3(2, 0, 0);
-    p2.model = &f22Model;
-    collider.ownerId = p2.id;
+    Object& ball = getNewObject();
+    ball.position = glm::vec3(2, 0, 0);
+    ball.model = &ballModel;
+    collider.ownerId = ball.id;
     colliders.emplace_back(collider);
 }
 
-Plane& Game::getNewPlane() {
-    Plane plane;
-    plane.id = planes.size();
-    plane.position = glm::vec3();
-    plane.forward = glm::vec3(0, 0, 1);
-    plane.right = glm::vec3(1, 0, 0);
-    plane.up = glm::vec3(0, 1, 0);
-    plane.speed = 0.0f;
+Object& Game::getNewObject() {
+    Object obj;
+    obj.id = objects.size();
+    obj.position = glm::vec3();
+    obj.forward = glm::vec3(0, 0, 1);
+    obj.right = glm::vec3(1, 0, 0);
+    obj.up = glm::vec3(0, 1, 0);
 
-    planes.emplace_back(plane);
+    objects.emplace_back(obj);
 
-    return planes[plane.id];
+    return objects[obj.id];
 }
 
-Plane& Game::getNewPlaneWithCollider() {
-    Plane& plane = getNewPlane();
+Object& Game::getNewObjectWithCollider() {
+    Object& plane = getNewObject();
     BoxCollider collider;
     collider.offset = glm::vec3();
     collider.size = glm::vec3(1.0f);
@@ -154,8 +168,8 @@ Plane& Game::getNewPlaneWithCollider() {
     return plane;
 }
 
-Plane& Game::getPlaneFromId(unsigned int id) {
-    return planes[id];
+Object& Game::getObjectFromId(unsigned int id) {
+    return objects[id];
 }
 
 void Game::update(float dt) {
@@ -185,21 +199,21 @@ void Game::render(float dt) {
     shader.setMat4("projection", projection);
     shader.setMat4("view", view);
     
-    for (const Plane& plane : planes) {
+    for (const Object& obj : objects) {
         glm::mat4 rotMat(
-            glm::vec4(plane.right, 0.0f),
-            glm::vec4(plane.up, 0.0f),
-            glm::vec4(plane.forward, 0.0f),
+            glm::vec4(obj.right, 0.0f),
+            glm::vec4(obj.up, 0.0f),
+            glm::vec4(obj.forward, 0.0f),
             glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
         );
 
-        glm::mat4 model = 
-            glm::translate(glm::mat4(1.0f), plane.position) * 
+        glm::mat4 model =
+            glm::translate(glm::mat4(1.0f), obj.position) *
             rotMat *
-            glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) *
-            glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f));
+            modelToWorld[obj.model];
+
         shader.setMat4("model", model);
-        plane.model->Draw(shader);
+        obj.model->Draw(shader);
     }
 
     // collider
@@ -231,7 +245,7 @@ void Game::drawSkybox() {
 void Game::drawCollider(const BoxCollider& collider) {
     outlineShader.use();
 
-    const Plane& plane = getPlaneFromId(collider.ownerId);
+    const Object& plane = getObjectFromId(collider.ownerId);
 
     glm::mat4 model = glm::translate(glm::mat4(1.0f), collider.offset + plane.position) * glm::scale(glm::mat4(1.0f), collider.size);
     glm::mat4 view = camera.GetViewMatrix();
@@ -247,8 +261,8 @@ void Game::drawCollider(const BoxCollider& collider) {
 }
 
 bool Game::isColliding(const BoxCollider& c1, const BoxCollider& c2) {
-    const Plane& p1 = getPlaneFromId(c1.ownerId);
-    const Plane& p2 = getPlaneFromId(c2.ownerId);
+    const Object& p1 = getObjectFromId(c1.ownerId);
+    const Object& p2 = getObjectFromId(c2.ownerId);
     glm::vec3 pos1 = c1.offset + p1.position;
     glm::vec3 pos2 = c2.offset + p2.position;
     glm::vec3 halfSize1 = c1.size / 2.0f;
@@ -262,49 +276,4 @@ bool Game::isColliding(const BoxCollider& c1, const BoxCollider& c2) {
     bool collided = xCollided && yCollided && zCollided;
 
     return collided;
-}
-
-void Game::yawPlane(Plane& plane, float deg) {
-    glm::vec3 axis = glm::normalize(plane.up);
-    float angle = glm::radians(deg);
-    glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), angle, axis);
-    glm::vec4 forward = rotMat * glm::vec4(plane.forward, 1.0f);
-    glm::vec4 up = rotMat * glm::vec4(plane.up, 1.0f);
-    glm::vec4 right = rotMat * glm::vec4(plane.right, 1.0f);
-
-    plane.forward = forward;
-    plane.up = up;
-    plane.right = right;
-}
-
-void Game::pitchPlane(Plane& plane, float deg) {
-    glm::vec3 axis = glm::normalize(plane.right);
-    float angle = glm::radians(deg);
-    glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), angle, axis);
-    glm::vec4 forward = rotMat * glm::vec4(plane.forward, 1.0f);
-    glm::vec4 up = rotMat * glm::vec4(plane.up, 1.0f);
-    glm::vec4 right = rotMat * glm::vec4(plane.right, 1.0f);
-
-    plane.forward = forward;
-    plane.up = up;
-    plane.right = right;
-}
-
-void Game::rollPlane(Plane& plane, float deg) {
-    glm::vec3 axis = glm::normalize(plane.forward);
-    float angle = glm::radians(deg);
-    glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), angle, axis);
-    glm::vec4 forward = rotMat * glm::vec4(plane.forward, 1.0f);
-    glm::vec4 up = rotMat * glm::vec4(plane.up, 1.0f);
-    glm::vec4 right = rotMat * glm::vec4(plane.right, 1.0f);
-
-    plane.forward = forward;
-    plane.up = up;
-    plane.right = right;
-}
-
-void Game::updatePlayerPlaneCamera(Plane& playerPlane) {
-    camera.Forward = playerPlane.forward;
-    camera.Right = playerPlane.right;
-    camera.WorldUp = playerPlane.up;
 }
