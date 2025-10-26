@@ -4,8 +4,7 @@
 #include <vector>
 #include <cmath>
 
-Game::Game(Camera& camera):
-    camera(camera),
+Game::Game():
     shader("vertex.vs", "fragment.fs"),
     outlineShader("collider_outline.vs", "collider_outline.fs"),
     skyboxShader("skybox.vs", "skybox.fs"),
@@ -61,12 +60,12 @@ unsigned int Game::getCubeMapTexture(std::string cubeMapPath[]) {
 void Game::initSkybox() {
     std::string cubeMapFaces[6] =
     {
-        FileSystem::getPath("resources/objects/skybox/right.jpg"),
-        FileSystem::getPath("resources/objects/skybox/left.jpg"),
-        FileSystem::getPath("resources/objects/skybox/top.jpg"),
-        FileSystem::getPath("resources/objects/skybox/bottom.jpg"),
-        FileSystem::getPath("resources/objects/skybox/front.jpg"),
-        FileSystem::getPath("resources/objects/skybox/back.jpg")
+        FileSystem::getPath("resources/objects/playroomskybox/right.jpg"),
+        FileSystem::getPath("resources/objects/playroomskybox/left.jpg"),
+        FileSystem::getPath("resources/objects/playroomskybox/top.jpg"),
+        FileSystem::getPath("resources/objects/playroomskybox/bottom.jpg"),
+        FileSystem::getPath("resources/objects/playroomskybox/front.jpg"),
+        FileSystem::getPath("resources/objects/playroomskybox/back.jpg")
     };
 
     cubeMapTexture = getCubeMapTexture(cubeMapFaces);
@@ -109,18 +108,18 @@ void Game::init() {
     initColliderOutline();
 
     glm::mat4 tableToWorld = 
-        glm::scale(glm::mat4(1.0f), glm::vec3(0.01f)) *
+        glm::scale(glm::mat4(1.0f), glm::vec3(0.02f)) *
         glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -75.0f, 0.0f)) *
         glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     modelToWorld[&tableModel] = tableToWorld;
 
     glm::mat4 paddleToWorld =
         glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) *
-        glm::scale(glm::mat4(1.0f), glm::vec3(0.015f));
+        glm::scale(glm::mat4(1.0f), glm::vec3(0.03f));
     modelToWorld[&paddleModel] = paddleToWorld;
 
     glm::mat4 ballToWorld = 
-        glm::scale(glm::mat4(1.0f), glm::vec3(0.015f));
+        glm::scale(glm::mat4(1.0f), glm::vec3(0.03f));
     modelToWorld[&ballModel] = ballToWorld;
 
     Object& paddle = getNewObject();
@@ -186,6 +185,10 @@ void Game::update(float dt) {
     }
 }
 
+glm::mat4 Game::getProjection() const {
+    return glm::perspective(glm::radians(FOV), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+}
+
 void Game::render(float dt) {
     glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -194,7 +197,7 @@ void Game::render(float dt) {
     shader.use();
 
     // view/projection transformations
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    glm::mat4 projection = getProjection();
     glm::mat4 view = camera.GetViewMatrix();
     shader.setMat4("projection", projection);
     shader.setMat4("view", view);
@@ -226,7 +229,7 @@ void Game::render(float dt) {
     glm::mat4 skyboxView = glm::mat4(1.0f);
     glm::mat4 skyboxProjection = glm::mat4(1.0f);
     skyboxView = glm::mat4(glm::mat3(glm::lookAt(camera.Position, camera.Position + camera.Forward, camera.Up)));
-    skyboxProjection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / SCR_HEIGHT, 0.1f, 100.0f);
+    skyboxProjection = getProjection();
     skyboxShader.setMat4("view", skyboxView);
     skyboxShader.setMat4("projection", skyboxProjection);
     drawSkybox();
@@ -249,7 +252,7 @@ void Game::drawCollider(const BoxCollider& collider) {
 
     glm::mat4 model = glm::translate(glm::mat4(1.0f), collider.offset + plane.position) * glm::scale(glm::mat4(1.0f), collider.size);
     glm::mat4 view = camera.GetViewMatrix();
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    glm::mat4 projection = getProjection();
     outlineShader.setMat4("model", model);
     outlineShader.setMat4("view", view);
     outlineShader.setMat4("projection", projection);
@@ -276,4 +279,12 @@ bool Game::isColliding(const BoxCollider& c1, const BoxCollider& c2) {
     bool collided = xCollided && yCollided && zCollided;
 
     return collided;
+}
+
+void Game::processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch) {
+    camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+void Game::processKeyboard(glm::vec3 movement, float dt) {
+    camera.ProcessKeyboard(movement, dt);
 }

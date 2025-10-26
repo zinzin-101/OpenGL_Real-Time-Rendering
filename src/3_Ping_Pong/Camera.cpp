@@ -43,7 +43,7 @@ void Camera::ProcessKeyboard(Camera_Movement direction, float deltaTime)
         Position -= Up * velocity;
 }
 
-void Camera::MyProcessKeyboard(glm::vec3 movement, float dt) {
+void Camera::ProcessKeyboard(glm::vec3 movement, float dt) {
     Position += Forward * movement.z * dt;
     Position += Right * movement.x * dt;
     Position += Up * movement.y * dt;

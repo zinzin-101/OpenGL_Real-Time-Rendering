@@ -4,7 +4,7 @@
 // timing
 float lastFrame = 0.0f;
 
-Camera camera;
+Game* gamePtr = nullptr;
 float lastX;
 float lastY;
 bool firstMouse;
@@ -61,7 +61,8 @@ int main()
     stbi_set_flip_vertically_on_load(true);
 
 
-    Game game(camera);
+    Game game;
+    gamePtr = &game;
 
     // render loop
     // -----------
@@ -117,7 +118,8 @@ void processInput(GLFWwindow* window, float dt)
         movement += glm::vec3(0, 5, 0);
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
         movement += glm::vec3(0, -5, 0);
-    camera.MyProcessKeyboard(movement, dt);
+    //camera.MyProcessKeyboard(movement, dt);
+    if (gamePtr != nullptr) gamePtr->processKeyboard(movement, dt);
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -149,12 +151,13 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     lastX = xpos;
     lastY = ypos;
 
-    camera.ProcessMouseMovement(xoffset, yoffset);
+    if (gamePtr != nullptr) gamePtr->processMouseMovement(xoffset, yoffset);
+    //camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
 // ----------------------------------------------------------------------
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    camera.ProcessMouseScroll(static_cast<float>(yoffset));
+    //camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }

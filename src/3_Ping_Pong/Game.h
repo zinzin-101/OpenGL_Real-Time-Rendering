@@ -27,9 +27,7 @@ const float DEFAULT_YAW_RATE = 50.0f;
 const float DEFAULT_ROLL_RATE = 200.0f;
 
 // Player settings
-const float CAM_DIST_FROM_PLANE = 50.0f;
-const float MAX_FOV = 90.0f;
-const float MIN_FOV = 60.0f;
+const float FOV = 60.0f;
 
 struct Object {
 	unsigned int id;
@@ -67,7 +65,8 @@ class Game {
 
 		unsigned int playerId;
 
-		Camera& camera;
+		Camera camera;
+		//Camera camera2;
 
 		void initSkybox();
 		void initColliderOutline();
@@ -77,8 +76,10 @@ class Game {
 		Object& getNewObjectWithCollider();
 		Object& getObjectFromId(unsigned int id);
 
+		glm::mat4 getProjection() const;
+
 	public:
-		Game(Camera& camera);
+		Game();
 		unsigned int getCubeMapTexture(std::string cubeMapPath[]);
 		
 		void render(float dt);
@@ -88,4 +89,7 @@ class Game {
 
 		bool isColliding(const BoxCollider& c1, const BoxCollider& c2);
 		void drawCollider(const BoxCollider& collider);
+
+		void processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true);
+		void processKeyboard(glm::vec3 movement, float dt);
 };
