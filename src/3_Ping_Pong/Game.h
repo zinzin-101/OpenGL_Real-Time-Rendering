@@ -25,6 +25,7 @@ const float DEFAULT_PLANE_SPEED = 100.0f;
 const float DEFAULT_PITCH_RATE = 150.0f;
 const float DEFAULT_YAW_RATE = 50.0f;
 const float DEFAULT_ROLL_RATE = 200.0f;
+const glm::vec3 DEFAULT_GRAVITY = glm::vec3(0.0f, -9.81f, 0.0f);
 
 // Player settings
 const float FOV = 60.0f;
@@ -38,7 +39,7 @@ enum CameraType {
 };
 
 struct Object {
-	unsigned int id;
+	int id;
 	std::string name;
 	Model* model;
 	glm::vec3 position;
@@ -52,6 +53,13 @@ struct BoxCollider {
 	int ownerId;
 	glm::vec3 offset;
 	glm::vec3 size;
+};
+
+struct Physics {
+	Physics(): ownerId(-1), lastPosition(0.0f), acceleration(0.0f) {}
+	int ownerId;
+	glm::vec3 lastPosition;
+	glm::vec3 acceleration;
 };
 
 class Game {
@@ -73,6 +81,9 @@ class Game {
 
 		std::vector<Object> objects;
 		std::vector<BoxCollider> colliders;
+		std::vector<Physics> physics;
+
+		bool toggleGravity;
 
 		int playerId;
 		int ballId;
@@ -95,14 +106,24 @@ class Game {
 
 		Object& getNewObject();
 		Object& getNewObjectWithCollider();
-		Object& getObjectFromId(unsigned int id);
+		Object& getObjectFromId(int id);
+		std::vector<BoxCollider*> getCollidersFromId(int id);
+		std::vector<Physics*> getPhysicsFromId(int id);
 
 		glm::mat4 getProjection() const;
 
-		void checkCollision();
-		void handleCollision(const BoxCollider& col1, const BoxCollider& col2);
+		void computeCollision();
+		void handleCollision(BoxCollider& col1, BoxCollider& col2);
 
+		void accelerate(Physics& phys, glm::vec3 a);
+		void setVelocity(Physics& phys, glm::vec3 vel, float dt);
+		void addVelocity(Physics& phys, glm::vec3 vel, float dt);
+		glm::vec3 getVelocity(Physics& phys, float dt);
+		void computePhysics(float dt);
+		
 		void rotateObject(Object& obj, glm::vec3 axis, float deg);
+
+		void handleBallBounce(Object& ball, Object& wall);
 
 	public:
 		Game();
