@@ -39,6 +39,7 @@ enum CameraType {
 
 struct Object {
 	unsigned int id;
+	std::string name;
 	Model* model;
 	glm::vec3 position;
 	glm::vec3 forward;
@@ -47,7 +48,8 @@ struct Object {
 };
 
 struct BoxCollider {
-	unsigned int ownerId;
+	BoxCollider(): ownerId(-1), offset(0.0f), size(1.0f) {}
+	int ownerId;
 	glm::vec3 offset;
 	glm::vec3 size;
 };
@@ -71,8 +73,8 @@ class Game {
 		std::vector<Object> objects;
 		std::vector<BoxCollider> colliders;
 
-		unsigned int playerId;
-		unsigned int ballId;
+		int playerId;
+		int ballId;
 
 		Camera stationaryCamera;
 		Camera followCamera;
@@ -95,6 +97,9 @@ class Game {
 		Object& getObjectFromId(unsigned int id);
 
 		glm::mat4 getProjection() const;
+
+		void checkCollision();
+		void handleCollision(const BoxCollider& col1, const BoxCollider& col2);
 
 	public:
 		Game();

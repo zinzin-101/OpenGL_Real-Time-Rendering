@@ -117,47 +117,72 @@ void Game::init() {
     cameraFollowDistance = (MAX_FOLLOW_CAM_DISTANCE + MIN_FOLLOW_CAM_DISTANCE) / 2.0f;
 
     glm::mat4 tableToWorld = 
-        glm::scale(glm::mat4(1.0f), glm::vec3(0.02f)) *
+        glm::scale(glm::mat4(1.0f), glm::vec3(0.1f)) *
         glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -75.0f, 0.0f)) *
         glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     modelToWorld[&tableModel] = tableToWorld;
 
     glm::mat4 paddleToWorld =
+        glm::scale(glm::mat4(1.0f), glm::vec3(0.2f)) *
         glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f)) *
-        glm::scale(glm::mat4(1.0f), glm::vec3(0.03f));
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -10.0f));
     modelToWorld[&paddleModel] = paddleToWorld;
 
     glm::mat4 ballToWorld = 
-        glm::scale(glm::mat4(1.0f), glm::vec3(0.03f)) *
+        glm::scale(glm::mat4(1.0f), glm::vec3(0.2f)) *
         glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.5f));
     modelToWorld[&ballModel] = ballToWorld;
 
     Object& paddle = getNewObject();
-    paddle.position = glm::vec3(-2, 0, 0);
+    paddle.position = glm::vec3(-2, 5, 0);
     paddle.model = &paddleModel;
+    paddle.name = "PlayerPaddle";
     BoxCollider collider;
-    collider.offset = glm::vec3();
-    collider.size = glm::vec3(1.0f);
+    collider.offset = glm::vec3(0.0f, 1.7f, 0.895f);
+    collider.size = glm::vec3(3.1f, 3.1f, 2.0f);
     collider.ownerId = paddle.id;
     colliders.emplace_back(collider);
     playerId = paddle.id;
 
     Object& table = getNewObject();
     table.model = &tableModel;
+    table.name = "Table";
+    collider = BoxCollider();
+    collider.offset = glm::vec3(0.0f, -1.9f, 0.0f);
+    collider.size = glm::vec3(16.0f, 5.0f, 27.5f);
+    collider.ownerId = table.id;
+    colliders.emplace_back(collider);
+
+    collider = BoxCollider();
+    collider.size = glm::vec3(16.0f, 1.3f, 0.3f);
+    collider.offset = glm::vec3(0.0f, 1.3f, 0.0f);
     collider.ownerId = table.id;
     colliders.emplace_back(collider);
 
     Object& ball = getNewObject();
-    ball.position = glm::vec3(2, 0, 0);
+    ball.position = glm::vec3(2, 5, 0);
     ball.model = &ballModel;
+    ball.name = "Ball";
+    collider = BoxCollider();
     collider.ownerId = ball.id;
     ballId = ball.id;
+    colliders.emplace_back(collider);
+
+    Object& leftWall = getNewObject();
+    leftWall.name = "LeftWall";
+    leftWall.position = glm::vec3(-8.0f, 0.0f, 0.0f);
+    collider = BoxCollider();
+    collider.ownerId = leftWall.id;
+    collider.offset = glm::vec3(-1.0f, 0.0f, 0.0f);
+    collider.size = glm::vec3(2.0f, 30.0f, 30.0f);
     colliders.emplace_back(collider);
 }
 
 Object& Game::getNewObject() {
     Object obj;
     obj.id = objects.size();
+    obj.model = nullptr;
+    obj.name = "Object";
     obj.position = glm::vec3();
     obj.forward = glm::vec3(0, 0, 1);
     obj.right = glm::vec3(1, 0, 0);
@@ -169,31 +194,42 @@ Object& Game::getNewObject() {
 }
 
 Object& Game::getNewObjectWithCollider() {
-    Object& plane = getNewObject();
+    Object& obj = getNewObject();
     BoxCollider collider;
     collider.offset = glm::vec3();
     collider.size = glm::vec3(1.0f);
-    collider.ownerId = plane.id;
+    collider.ownerId = obj.id;
     colliders.emplace_back(collider);
-    return plane;
+    return obj;
 }
 
 Object& Game::getObjectFromId(unsigned int id) {
     return objects[id];
 }
 
-void Game::update(float dt) {
+void Game::checkCollision() {
     int numOfColliders = colliders.size();
     for (int i = 0; i < numOfColliders; i++) {
         for (int j = i + 1; j < numOfColliders; j++) {
             BoxCollider& col1 = colliders[i];
             BoxCollider& col2 = colliders[j];
 
+            if (col1.ownerId == col2.ownerId) continue;
+
             if (isColliding(col1, col2)) {
-                std::cout << "is colliding" << std::endl;
+                std::cout << getObjectFromId(col1.ownerId).name << " and " << getObjectFromId(col2.ownerId).name << " is colliding" << std::endl;
+                handleCollision(col1, col2);
             }
         }
     }
+}
+
+void Game::handleCollision(const BoxCollider& col1, const BoxCollider& col2) {
+
+}
+
+void Game::update(float dt) {
+    checkCollision();
 
     if (currentCameraType == CameraType::FOLLOW) updateFollowCamera();
 }
@@ -229,7 +265,8 @@ void Game::render(float dt) {
             modelToWorld[obj.model];
 
         shader.setMat4("model", model);
-        obj.model->Draw(shader);
+        if (obj.model != nullptr) 
+            obj.model->Draw(shader);
     }
 
     // collider
