@@ -107,6 +107,14 @@ void Game::init() {
     initSkybox();
     initColliderOutline();
 
+    stationaryCamera = Camera();
+    followCamera = Camera();
+    freeCamera = Camera();
+    cameras[CameraType::STATIONARY] = &stationaryCamera;
+    cameras[CameraType::FOLLOW] = &followCamera;
+    cameras[CameraType::FREE] = &freeCamera;
+    currentCameraType = CameraType::STATIONARY;
+
     glm::mat4 tableToWorld = 
         glm::scale(glm::mat4(1.0f), glm::vec3(0.02f)) *
         glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -75.0f, 0.0f)) *
@@ -198,7 +206,7 @@ void Game::render(float dt) {
 
     // view/projection transformations
     glm::mat4 projection = getProjection();
-    glm::mat4 view = camera.GetViewMatrix();
+    glm::mat4 view = cameras[currentCameraType]->GetViewMatrix();
     shader.setMat4("projection", projection);
     shader.setMat4("view", view);
     
@@ -228,6 +236,7 @@ void Game::render(float dt) {
     skyboxShader.use();
     glm::mat4 skyboxView = glm::mat4(1.0f);
     glm::mat4 skyboxProjection = glm::mat4(1.0f);
+    Camera& camera = *cameras[currentCameraType];
     skyboxView = glm::mat4(glm::mat3(glm::lookAt(camera.Position, camera.Position + camera.Forward, camera.Up)));
     skyboxProjection = getProjection();
     skyboxShader.setMat4("view", skyboxView);
@@ -251,7 +260,7 @@ void Game::drawCollider(const BoxCollider& collider) {
     const Object& plane = getObjectFromId(collider.ownerId);
 
     glm::mat4 model = glm::translate(glm::mat4(1.0f), collider.offset + plane.position) * glm::scale(glm::mat4(1.0f), collider.size);
-    glm::mat4 view = camera.GetViewMatrix();
+    glm::mat4 view = cameras[currentCameraType]->GetViewMatrix();
     glm::mat4 projection = getProjection();
     outlineShader.setMat4("model", model);
     outlineShader.setMat4("view", view);
@@ -282,9 +291,35 @@ bool Game::isColliding(const BoxCollider& c1, const BoxCollider& c2) {
 }
 
 void Game::processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch) {
-    camera.ProcessMouseMovement(xoffset, yoffset);
+    cameras[currentCameraType]->ProcessMouseMovement(xoffset, yoffset);
 }
 
-void Game::processKeyboard(glm::vec3 movement, float dt) {
-    camera.ProcessKeyboard(movement, dt);
+void Game::initKeyDebounce() {
+    keyDebounce[GLFW_KEY_V] = false;
+}
+
+void Game::processKeyboard(GLFWwindow* window, float dt) {
+    glm::vec3 movement = glm::vec3();
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        movement += glm::vec3(0, 0, 5);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        movement += glm::vec3(0, 0, -5);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        movement += glm::vec3(-5, 0, 0);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        movement += glm::vec3(5, 0, 0);
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+        movement += glm::vec3(0, 5, 0);
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+        movement += glm::vec3(0, -5, 0);
+
+    if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS && !keyDebounce.at(GLFW_KEY_V)) {
+        keyDebounce[GLFW_KEY_V] = true;
+        currentCameraType = (CameraType)(((int)currentCameraType + 1) % NUM_CAM_TYPES);
+    }
+    else if (glfwGetKey(window, GLFW_KEY_V) == GLFW_RELEASE) keyDebounce[GLFW_KEY_V] = false;
+
+
+    cameras[currentCameraType]->ProcessKeyboard(movement, dt);
 }

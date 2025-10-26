@@ -104,22 +104,9 @@ void processInput(GLFWwindow* window, float dt)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    glm::vec3 movement = glm::vec3();
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        movement += glm::vec3(0, 0, 5);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        movement += glm::vec3(0, 0, -5);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        movement += glm::vec3(-5, 0, 0);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        movement += glm::vec3(5, 0, 0);
-    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-        movement += glm::vec3(0, 5, 0);
-    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-        movement += glm::vec3(0, -5, 0);
     //camera.MyProcessKeyboard(movement, dt);
-    if (gamePtr != nullptr) gamePtr->processKeyboard(movement, dt);
+    if (gamePtr != nullptr) gamePtr->processKeyboard(window, dt);
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes

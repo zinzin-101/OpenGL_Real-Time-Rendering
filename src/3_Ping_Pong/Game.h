@@ -28,6 +28,12 @@ const float DEFAULT_ROLL_RATE = 200.0f;
 
 // Player settings
 const float FOV = 60.0f;
+const unsigned int NUM_CAM_TYPES = 3;
+enum CameraType {
+	STATIONARY = 0,
+	FOLLOW,
+	FREE
+};
 
 struct Object {
 	unsigned int id;
@@ -65,8 +71,14 @@ class Game {
 
 		unsigned int playerId;
 
-		Camera camera;
-		//Camera camera2;
+		Camera stationaryCamera;
+		Camera followCamera;
+		Camera freeCamera;
+		Camera* cameras[NUM_CAM_TYPES];
+		CameraType currentCameraType;
+		
+		std::map<unsigned int, bool> keyDebounce;
+		void initKeyDebounce();
 
 		void initSkybox();
 		void initColliderOutline();
@@ -91,5 +103,5 @@ class Game {
 		void drawCollider(const BoxCollider& collider);
 
 		void processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true);
-		void processKeyboard(glm::vec3 movement, float dt);
+		void processKeyboard(GLFWwindow* window, float dt);
 };
