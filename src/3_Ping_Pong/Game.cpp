@@ -114,6 +114,7 @@ void Game::init() {
     cameras[CameraType::FOLLOW] = &followCamera;
     cameras[CameraType::FREE] = &freeCamera;
     currentCameraType = CameraType::STATIONARY;
+    cameraFollowDistance = (MAX_FOLLOW_CAM_DISTANCE + MIN_FOLLOW_CAM_DISTANCE) / 2.0f;
 
     glm::mat4 tableToWorld = 
         glm::scale(glm::mat4(1.0f), glm::vec3(0.02f)) *
@@ -127,7 +128,8 @@ void Game::init() {
     modelToWorld[&paddleModel] = paddleToWorld;
 
     glm::mat4 ballToWorld = 
-        glm::scale(glm::mat4(1.0f), glm::vec3(0.03f));
+        glm::scale(glm::mat4(1.0f), glm::vec3(0.03f)) *
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -2.5f));
     modelToWorld[&ballModel] = ballToWorld;
 
     Object& paddle = getNewObject();
@@ -149,6 +151,7 @@ void Game::init() {
     ball.position = glm::vec3(2, 0, 0);
     ball.model = &ballModel;
     collider.ownerId = ball.id;
+    ballId = ball.id;
     colliders.emplace_back(collider);
 }
 
@@ -191,6 +194,8 @@ void Game::update(float dt) {
             }
         }
     }
+
+    if (currentCameraType == CameraType::FOLLOW) updateFollowCamera();
 }
 
 glm::mat4 Game::getProjection() const {
@@ -291,7 +296,36 @@ bool Game::isColliding(const BoxCollider& c1, const BoxCollider& c2) {
 }
 
 void Game::processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch) {
-    cameras[currentCameraType]->ProcessMouseMovement(xoffset, yoffset);
+    switch (currentCameraType) {
+        case CameraType::STATIONARY:
+            break;
+
+        case CameraType::FOLLOW:
+            processFollowCamera(xoffset, yoffset);
+            break;
+
+        case CameraType::FREE:
+            cameras[currentCameraType]->ProcessMouseMovement(xoffset, yoffset);
+            break;
+    }
+}
+
+void Game::processFollowCamera(float xoffset, float yoffset, GLboolean constrainPitch) {
+    Camera& cam = *cameras[currentCameraType];
+    cam.ProcessMouseMovement(xoffset, yoffset);
+    updateFollowCamera();
+}
+
+void Game::updateFollowCamera() {
+    glm::vec3 targetPos = getObjectFromId(ballId).position;
+    cameras[CameraType::FOLLOW]->Position = targetPos - cameras[CameraType::FOLLOW]->Forward * cameraFollowDistance;
+}
+
+void Game::processMouseScroll(float yoffset) {
+    if (currentCameraType == CameraType::FOLLOW) {
+        cameraFollowDistance -= yoffset;
+        cameraFollowDistance = glm::clamp(cameraFollowDistance, MIN_FOLLOW_CAM_DISTANCE, MAX_FOLLOW_CAM_DISTANCE);
+    }
 }
 
 void Game::initKeyDebounce() {
@@ -301,18 +335,6 @@ void Game::initKeyDebounce() {
 void Game::processKeyboard(GLFWwindow* window, float dt) {
     glm::vec3 movement = glm::vec3();
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        movement += glm::vec3(0, 0, 5);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        movement += glm::vec3(0, 0, -5);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        movement += glm::vec3(-5, 0, 0);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        movement += glm::vec3(5, 0, 0);
-    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-        movement += glm::vec3(0, 5, 0);
-    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-        movement += glm::vec3(0, -5, 0);
 
     if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS && !keyDebounce.at(GLFW_KEY_V)) {
         keyDebounce[GLFW_KEY_V] = true;
@@ -320,6 +342,19 @@ void Game::processKeyboard(GLFWwindow* window, float dt) {
     }
     else if (glfwGetKey(window, GLFW_KEY_V) == GLFW_RELEASE) keyDebounce[GLFW_KEY_V] = false;
 
-
-    cameras[currentCameraType]->ProcessKeyboard(movement, dt);
+    if (currentCameraType == CameraType::FREE) {
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            movement += glm::vec3(0, 0, 5);
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            movement += glm::vec3(0, 0, -5);
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            movement += glm::vec3(-5, 0, 0);
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            movement += glm::vec3(5, 0, 0);
+        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+            movement += glm::vec3(0, 5, 0);
+        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+            movement += glm::vec3(0, -5, 0);
+        cameras[currentCameraType]->ProcessKeyboard(movement, dt);
+    }
 }

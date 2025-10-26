@@ -29,6 +29,8 @@ const float DEFAULT_ROLL_RATE = 200.0f;
 // Player settings
 const float FOV = 60.0f;
 const unsigned int NUM_CAM_TYPES = 3;
+const float MAX_FOLLOW_CAM_DISTANCE = 10.0f;
+const float MIN_FOLLOW_CAM_DISTANCE = 1.0f;
 enum CameraType {
 	STATIONARY = 0,
 	FOLLOW,
@@ -70,12 +72,16 @@ class Game {
 		std::vector<BoxCollider> colliders;
 
 		unsigned int playerId;
+		unsigned int ballId;
 
 		Camera stationaryCamera;
 		Camera followCamera;
 		Camera freeCamera;
 		Camera* cameras[NUM_CAM_TYPES];
 		CameraType currentCameraType;
+		float cameraFollowDistance;
+		void processFollowCamera(float xoffset, float yoffset, GLboolean constrainPitch = true);
+		void updateFollowCamera();
 		
 		std::map<unsigned int, bool> keyDebounce;
 		void initKeyDebounce();
@@ -103,5 +109,6 @@ class Game {
 		void drawCollider(const BoxCollider& collider);
 
 		void processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true);
+		void processMouseScroll(float yoffset);
 		void processKeyboard(GLFWwindow* window, float dt);
 };

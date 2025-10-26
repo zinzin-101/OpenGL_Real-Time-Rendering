@@ -146,5 +146,6 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 // ----------------------------------------------------------------------
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
+    if (gamePtr != nullptr) gamePtr->processMouseScroll(static_cast<float>(yoffset));
     //camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
