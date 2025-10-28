@@ -105,6 +105,10 @@ void Game::initColliderOutline() {
 }
 
 void Game::init() {
+    GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
+    int refreshRate = mode->refreshRate;
+
     initSkybox();
     initColliderOutline();
 
@@ -180,7 +184,7 @@ void Game::init() {
     colliders.emplace_back(collider);
 
     Object& ball = getNewObject();
-    ball.position = glm::vec3(-2.0f, 10.0f, 5.0f);
+    ball.position = glm::vec3(0, 10.0f, 0.0f);
     ball.model = &ballModel;
     ball.name = "Ball";
     collider = BoxCollider();
@@ -190,7 +194,6 @@ void Game::init() {
     Physics phys;
     phys.ownerId = ball.id;
     phys.lastPosition = ball.position;
-    addVelocity(phys, glm::vec3(0.0f, 0.0f, 5.0f), 1.0f / 144.0f);
     physics.emplace_back(phys);
 
     Object& leftWall = getNewObject();
@@ -223,6 +226,8 @@ void Game::init() {
     collider.ownerId = floor.id;
     collider.size = glm::vec3(50.0f, 2.0f, 50.0f);
     colliders.emplace_back(collider);
+
+    reset(1.0f / (float)refreshRate);
 }
 
 Object& Game::getNewObject() {
@@ -356,20 +361,30 @@ void Game::handlePaddleBounce(Object& ball, Object& paddle) {
     Physics& ballPhys = *getPhysicsById(ball.id)[0];
     BoxCollider& ballCol = *getCollidersById(ball.id)[0];
     BoxCollider& paddleCol = *getCollidersById(paddle.id)[0];
-    glm::vec3 reflectedDisplacement = ball.position - ballPhys.lastPosition;
-    float distance = glm::length(reflectedDisplacement);
+    glm::vec3 displacement = ball.position - ballPhys.lastPosition;
+    float distance = glm::length(displacement);
     glm::vec3 paddleOrigin = paddle.position + paddleCol.offset;
     glm::vec3 hitOffset = ball.position - paddleOrigin;
     float horizontalAngle = (hitOffset.x / (paddleCol.size.x * 0.5f)) * MAX_PADDLE_BOUNCE_ANGLE;
     float verticalAngle = (hitOffset.y / (paddleCol.size.y * 0.5f)) * MAX_PADDLE_BOUNCE_ANGLE;
     glm::vec3 direction = glm::vec3(
         sin(glm::radians(horizontalAngle)),
-        sin(glm::radians(-verticalAngle)),
-        1.0f
+        sin(glm::radians(verticalAngle)),
+        (paddle.position.z < 0.0f ? -1.0f : 1.0f)
     );
-    glm::vec3 newDisplacement = direction * distance;
-    ball.position.z = paddle.position.z + (paddle.position.z < 0.0f ? 1.0f : -1.0f * (paddleCol.offset.z + paddleCol.size.z * 0.5f + ballCol.offset.z + ballCol.size.z * 0.5f));
-    ballPhys.lastPosition = ball.position + ((paddle.position.z < 0.0f ? -1.0f : 1.0f) * newDisplacement);
+
+    float zOffset = paddleCol.offset.z + (paddle.position.z < 0.0f ? 1.0f : -1.0f) * (paddleCol.size.z * 0.5f + ballCol.offset.z + ballCol.size.z * 0.5f);
+    glm::vec3 newDisplacement = glm::normalize(direction) * distance;
+    ball.position.z = paddle.position.z + zOffset;
+    ballPhys.lastPosition = ball.position + newDisplacement;
+}
+
+void Game::reset(float dt) {
+    Object& ball = getObjectById(ballId);
+    Physics& phys = *getPhysicsById(ballId)[0];
+    ball.position = glm::vec3(0.0f, 10.0f, 0.0f);
+    phys.lastPosition = ball.position;
+    addVelocity(phys, glm::vec3(0.0f, 0.0f, 5.0f), dt);
 }
 
 void Game::accelerate(Physics& phys, glm::vec3 a) {
@@ -422,22 +437,22 @@ void Game::update(float dt) {
         computeCollision();
     }
 
-    Object& ball = getObjectById(ballId);
-    Physics& ballPhys = *getPhysicsById(ballId)[0];
-    glm::vec3 ballvel = getVelocity(ballPhys, dt);
-    std::cout << "ball vel: " << ballvel.x << " " << ballvel.y << " " << ballvel.z << std::endl;
-    std::cout << "last pos: " << ballPhys.lastPosition.x << " " << ballPhys.lastPosition.y << " " << ballPhys.lastPosition.z << std::endl;
-    std::cout << "pos: " << ball.position.x << " " << ball.position.y << " " << ball.position.z << std::endl;
     if (currentCameraType == CameraType::FOLLOW) updateFollowCamera();
+    
+    Object& ball = getObjectById(ballId);
+    if (ball.position.y < -10.0f) {
+        reset(dt);
+    }
+
 
     Object& player = getObjectById(playerId);
     BoxCollider& playerCol = *getCollidersById(playerId)[0];
     Object& opponent = getObjectById(opponentId);
     BoxCollider& opponentCol = *getCollidersById(opponentId)[0];
-    player.position.x = ball.position.x - playerCol.offset.x;
+    player.position.x = ball.position.x - playerCol.offset.x - 1.0f;
     player.position.y = ball.position.y - playerCol.offset.y;
 
-    opponent.position.x = ball.position.x - 1.0f;
+    opponent.position.x = ball.position.x + 1.0f;
     opponent.position.y = ball.position.y - opponentCol.offset.y;
 }
 
@@ -597,11 +612,10 @@ void Game::processKeyboard(GLFWwindow* window, float dt) {
     }
     else if (glfwGetKey(window, GLFW_KEY_P) == GLFW_RELEASE) keyDown[GLFW_KEY_P] = false;
 
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_RELEASE) keyDown[GLFW_KEY_DOWN] = false;
+
     if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
-        Physics& ballPhys = *getPhysicsById(ballId)[0];
-        glm::vec3 lastVel = getVelocity(ballPhys, dt);
-        getObjectById(ballId).position = glm::vec3(-2, 10, 5);
-        setVelocity(ballPhys, lastVel, dt);
+        reset(dt);
     }
 
     if (currentCameraType == CameraType::FREE) {

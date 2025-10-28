@@ -132,6 +132,8 @@ class Game {
 		void handleBallBounce(Object& ball, Object& wall, BoxCollider& wallCol);
 		void handlePaddleBounce(Object& ball, Object& paddle);
 
+		void reset(float dt);
+
 	public:
 		Game();
 		unsigned int getCubeMapTexture(std::string cubeMapPath[]);
