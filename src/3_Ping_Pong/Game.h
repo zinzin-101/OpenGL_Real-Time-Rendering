@@ -28,7 +28,8 @@ const float DEFAULT_ROLL_RATE = 200.0f;
 const glm::vec3 DEFAULT_GRAVITY = glm::vec3(0.0f, -20.0f, 0.0f);
 const float MAX_PADDLE_BOUNCE_ANGLE = 65.0f;
 const unsigned int PHYSICS_RESOLUTION = 3;
-const float DEFAULT_SENSITIVITY = 0.1f;
+const float BOUNCE_COEFFICIENT = 1.25f;
+const float DEFAULT_SENSITIVITY = 0.05f;
 
 // Player settings
 const float FOV = 60.0f;
@@ -37,6 +38,8 @@ const float FREE_CAM_FAST_MOVE_SPEED = 24.0f;
 const unsigned int NUM_CAM_TYPES = 4;
 const float MAX_FOLLOW_CAM_DISTANCE = 40.0f;
 const float MIN_FOLLOW_CAM_DISTANCE = 1.0f;
+const float DEFAULT_FOLLOW_CAM_DISTANCE = (MAX_FOLLOW_CAM_DISTANCE + MIN_FOLLOW_CAM_DISTANCE) / 2.0f;
+const float DEFAULT_CAM_HEIGHT = 3.0f;
 enum CameraType {
 	STATIONARY = 0,
 	FOLLOW_PADDLE,
@@ -89,12 +92,20 @@ class Game {
 		std::vector<BoxCollider> colliders;
 		std::vector<Physics> physics;
 
+		float dt;
+
+		bool showCollider;
 		bool toggleGravity;
 		bool togglePause;
 		bool autopilot;
 
+
 		bool isMovingPaddle;
+		bool isAdjustingLook;
 		float sensitivity;
+		glm::vec3 camLookVector;
+		float cameraHeight;
+
 
 		int playerId;
 		int ballId;
@@ -106,8 +117,10 @@ class Game {
 		Camera freeCamera;
 		Camera* cameras[NUM_CAM_TYPES];
 		CameraType currentCameraType;
+		glm::vec3 stationaryCameraPosition;
 		float cameraFollowDistance;
 		void processFollowCamera(float xoffset, float yoffset, GLboolean constrainPitch = true);
+		void updateStationaryCamera();
 		void updateFollowCamera();
 		void updateBehindCamera();
 		

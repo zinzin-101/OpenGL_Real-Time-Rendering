@@ -115,8 +115,11 @@ void Game::init() {
     initSkybox();
     initColliderOutline();
 
+    camLookVector = getRotatedVector(glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.0f), -5.0f);
+
     stationaryCamera = Camera(glm::vec3(0.0f, 7.0f, 26.0f));
-    stationaryCamera.SetForwardVector(getRotatedVector(glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.0f), -5.0f));
+    stationaryCamera.SetForwardVector(camLookVector);
+    stationaryCameraPosition = stationaryCamera.Position;
     behindCamera = Camera();
     followCamera = Camera();
     freeCamera = Camera();
@@ -125,13 +128,16 @@ void Game::init() {
     cameras[CameraType::FOLLOW_BALL] = &followCamera;
     cameras[CameraType::FREE] = &freeCamera;
     currentCameraType = CameraType::STATIONARY;
-    cameraFollowDistance = (MAX_FOLLOW_CAM_DISTANCE + MIN_FOLLOW_CAM_DISTANCE) / 2.0f;
+    cameraFollowDistance = DEFAULT_FOLLOW_CAM_DISTANCE;
+    cameraHeight = DEFAULT_CAM_HEIGHT;
 
     toggleGravity = true;
     togglePause = true;
     autopilot = false;
+    showCollider = false;
 
     isMovingPaddle = false;
+    isAdjustingLook = false;
     sensitivity = DEFAULT_SENSITIVITY;
 
     glm::mat4 tableToWorld = 
@@ -249,7 +255,8 @@ void Game::init() {
     collider.size = glm::vec3(50.0f, 2.0f, 50.0f);
     colliders.emplace_back(collider);
 
-    reset(1.0f / (float)refreshRate);
+    dt = 1.0f / (float)refreshRate;
+    reset(dt);
 }
 
 Object& Game::getNewObject() {
@@ -367,7 +374,7 @@ void Game::handleBallBounce(Object& ball, Object& wall, BoxCollider& wallCol) {
 
         float displacement = ball.position.x - ballPhysics.lastPosition.x;
         ball.position.x = wall.position.x + wallCol.offset.x - wallCol.size.x * 0.5f - ballCol.offset.x - ballCol.size.x * 0.5f;
-        ballPhysics.lastPosition.x = ball.position.x + displacement * 1.02f;
+        ballPhysics.lastPosition.x = ball.position.x + displacement * BOUNCE_COEFFICIENT;
     }
     else if (wallPos.x < 0.0f) { // left wall
         if (&netCol == &wallCol) { 
@@ -386,13 +393,13 @@ void Game::handleBallBounce(Object& ball, Object& wall, BoxCollider& wallCol) {
 
         float displacement = ball.position.x - ballPhysics.lastPosition.x;
         ball.position.x = wall.position.x + wallCol.offset.x + wallCol.size.x * 0.5f + ballCol.offset.x + ballCol.size.x * 0.5f;
-        ballPhysics.lastPosition.x = ball.position.x + displacement * 1.02f;
+        ballPhysics.lastPosition.x = ball.position.x + displacement * BOUNCE_COEFFICIENT;
     }
     else if (wallPos.y <= 0.0f) { // table
         if (wallCol.offset.y < 0.0f) { // surface
             float displacement = ball.position.y - ballPhysics.lastPosition.y;
             ball.position.y = wall.position.y + wallCol.offset.y + wallCol.size.y * 0.5f + ballCol.offset.y + ballCol.size.y * 0.5f;
-            ballPhysics.lastPosition.y = ball.position.y + displacement * 1.02f;
+            ballPhysics.lastPosition.y = ball.position.y + displacement * BOUNCE_COEFFICIENT;
             return;
         }
         
@@ -494,8 +501,11 @@ void Game::rotateObject(Object& obj, glm::vec3 axis, float deg) {
 }
 
 void Game::update(float dt) {
+    if (currentCameraType == CameraType::STATIONARY) updateStationaryCamera();
     if (currentCameraType == CameraType::FOLLOW_BALL) updateFollowCamera();
     if (currentCameraType == CameraType::FOLLOW_PADDLE) updateBehindCamera();
+
+    this->dt = dt;
 
     if (togglePause) return;
 
@@ -561,8 +571,10 @@ void Game::render(float dt) {
     }
 
     // collider
-    for (const BoxCollider& collider : colliders) {
-        drawCollider(collider);
+    if (showCollider) {
+        for (const BoxCollider& collider : colliders) {
+            drawCollider(collider);
+        }
     }
 
     // skybox
@@ -590,9 +602,9 @@ void Game::drawSkybox() {
 void Game::drawCollider(const BoxCollider& collider) {
     outlineShader.use();
 
-    const Object& plane = getObjectById(collider.ownerId);
+    const Object& obj = getObjectById(collider.ownerId);
 
-    glm::mat4 model = glm::translate(glm::mat4(1.0f), collider.offset + plane.position) * glm::scale(glm::mat4(1.0f), collider.size);
+    glm::mat4 model = glm::translate(glm::mat4(1.0f), collider.offset + obj.position) * glm::scale(glm::mat4(1.0f), collider.size);
     glm::mat4 view = cameras[currentCameraType]->GetViewMatrix();
     glm::mat4 projection = getProjection();
     outlineShader.setMat4("model", model);
@@ -624,6 +636,17 @@ bool Game::isColliding(const BoxCollider& c1, const BoxCollider& c2) {
 }
 
 void Game::processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch) {
+    if (isAdjustingLook && isMovingPaddle) {
+        cameraHeight += yoffset * dt;
+        return;
+    }
+
+    if (isAdjustingLook) {
+        camLookVector = getRotatedVector(camLookVector, glm::vec3(1.0f, 0.0f, 0.0f), yoffset * dt);
+        camLookVector = getRotatedVector(camLookVector, glm::vec3(0.0f, -1.0f, 0.0f), xoffset * dt);
+        return;
+    }
+
     if (isMovingPaddle) {
         glm::vec3 movement = glm::vec3(xoffset, yoffset, 0.0f) * sensitivity;
         getObjectById(playerId).position += movement;
@@ -647,6 +670,11 @@ void Game::processFollowCamera(float xoffset, float yoffset, GLboolean constrain
     updateFollowCamera();
 }
 
+void Game::updateStationaryCamera() {
+    stationaryCamera.SetForwardVector(camLookVector);
+    cameras[CameraType::STATIONARY]->Position = stationaryCameraPosition + glm::vec3(0.0f, cameraHeight, 0.0f) - camLookVector * (cameraFollowDistance - DEFAULT_FOLLOW_CAM_DISTANCE);
+}
+
 void Game::updateFollowCamera() {
     glm::vec3 targetPos = getObjectById(ballId).position;
     cameras[CameraType::FOLLOW_BALL]->Position = targetPos - cameras[CameraType::FOLLOW_BALL]->Forward * cameraFollowDistance;
@@ -654,27 +682,29 @@ void Game::updateFollowCamera() {
 
 void Game::updateBehindCamera() {
     Object& player = getObjectById(playerId);
-    cameras[CameraType::FOLLOW_PADDLE]->SetForwardVector(getRotatedVector(glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.0f), -10.0f));
-    cameras[CameraType::FOLLOW_PADDLE]->Position = player.position + glm::vec3(0.0f, 5.0f, cameraFollowDistance);
+    cameras[CameraType::FOLLOW_PADDLE]->SetForwardVector(camLookVector);
+    cameras[CameraType::FOLLOW_PADDLE]->Position = player.position + glm::vec3(0.0f, cameraHeight, 0.0f) - camLookVector * cameraFollowDistance;
 }
 
 void Game::processMouseScroll(float yoffset) {
-    if (currentCameraType == CameraType::FOLLOW_BALL || currentCameraType == CameraType::FOLLOW_PADDLE) {
-        cameraFollowDistance -= yoffset;
-        cameraFollowDistance = glm::clamp(cameraFollowDistance, MIN_FOLLOW_CAM_DISTANCE, MAX_FOLLOW_CAM_DISTANCE);
-    }
+    cameraFollowDistance -= yoffset;
+    cameraFollowDistance = glm::clamp(cameraFollowDistance, MIN_FOLLOW_CAM_DISTANCE, MAX_FOLLOW_CAM_DISTANCE);
 }
 
 void Game::processMouseButton(int button, int action) {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) isMovingPaddle = true;
     else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) isMovingPaddle = false;
+
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) isAdjustingLook = true;
+    else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) isAdjustingLook = false;
 }
 
 void Game::initKeyDown() {
     keyDown[GLFW_KEY_V] = false;
     keyDown[GLFW_KEY_G] = false;
-    keyDown[GLFW_KEY_P] = false;
+    keyDown[GLFW_KEY_ENTER] = false;
     keyDown[GLFW_KEY_O] = false;
+    keyDown[GLFW_KEY_C] = false;
 }
 
 void Game::processKeyboard(GLFWwindow* window, float dt) {
@@ -692,17 +722,23 @@ void Game::processKeyboard(GLFWwindow* window, float dt) {
     }
     else if (glfwGetKey(window, GLFW_KEY_G) == GLFW_RELEASE) keyDown[GLFW_KEY_G] = false;
 
-    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS && !keyDown.at(GLFW_KEY_P)) {
-        keyDown[GLFW_KEY_P] = true;
+    if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS && !keyDown.at(GLFW_KEY_ENTER)) {
+        keyDown[GLFW_KEY_ENTER] = true;
         togglePause = !togglePause;
     }
-    else if (glfwGetKey(window, GLFW_KEY_P) == GLFW_RELEASE) keyDown[GLFW_KEY_P] = false;
+    else if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_RELEASE) keyDown[GLFW_KEY_ENTER] = false;
 
     if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS && !keyDown.at(GLFW_KEY_O)) {
         keyDown[GLFW_KEY_O] = true;
         autopilot = !autopilot;
     }
-    else if (glfwGetKey(window, GLFW_KEY_O) == GLFW_RELEASE) keyDown[GLFW_KEY_O] = false;
+    else if (glfwGetKey(window, GLFW_KEY_C) == GLFW_RELEASE) keyDown[GLFW_KEY_C] = false;
+
+    if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS && !keyDown.at(GLFW_KEY_C)) {
+        keyDown[GLFW_KEY_C] = true;
+        showCollider = !showCollider;
+    }
+    else if (glfwGetKey(window, GLFW_KEY_C) == GLFW_RELEASE) keyDown[GLFW_KEY_C] = false;
 
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_RELEASE) keyDown[GLFW_KEY_DOWN] = false;
 
@@ -717,6 +753,7 @@ void Game::processKeyboard(GLFWwindow* window, float dt) {
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
         sensitivity -= 0.1f * dt;
     }
+    sensitivity = max(sensitivity, 0.001f);
 
     if (currentCameraType == CameraType::FREE) {
         glm::vec3 movement = glm::vec3();
