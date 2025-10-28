@@ -556,12 +556,9 @@ void Game::update(float dt) {
         reset(dt);
     }
 
-    std::cout << "cam pos:" << cameras[currentCameraType]->Position << std::endl;
-
     if (autopilot) {
         Object& player = getObjectById(playerId);
         BoxCollider& playerCol = *getCollidersById(playerId)[0];
-        player.position.x = ball.position.x - playerCol.offset.x;
         player.position.x = ball.position.x - playerCol.offset.x;
         player.position.y = ball.position.y - playerCol.offset.y;
     }
