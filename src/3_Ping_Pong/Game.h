@@ -25,10 +25,12 @@ const float DEFAULT_PLANE_SPEED = 100.0f;
 const float DEFAULT_PITCH_RATE = 150.0f;
 const float DEFAULT_YAW_RATE = 50.0f;
 const float DEFAULT_ROLL_RATE = 200.0f;
-const glm::vec3 DEFAULT_GRAVITY = glm::vec3(0.0f, -9.81f, 0.0f);
+const glm::vec3 DEFAULT_GRAVITY = glm::vec3(0.0f, -20.0f, 0.0f);
 
 // Player settings
 const float FOV = 60.0f;
+const float FREE_CAM_MOVE_SPEED = 6.0f;
+const float FREE_CAM_FAST_MOVE_SPEED = 24.0f;
 const unsigned int NUM_CAM_TYPES = 3;
 const float MAX_FOLLOW_CAM_DISTANCE = 10.0f;
 const float MIN_FOLLOW_CAM_DISTANCE = 1.0f;
@@ -87,6 +89,7 @@ class Game {
 
 		int playerId;
 		int ballId;
+		int enemyId;
 
 		Camera stationaryCamera;
 		Camera followCamera;

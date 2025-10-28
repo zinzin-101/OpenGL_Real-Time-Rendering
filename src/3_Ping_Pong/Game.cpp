@@ -142,16 +142,26 @@ void Game::init() {
         glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     modelToWorld[&floorModel] = floorToWorld;
 
-    Object& paddle = getNewObject();
-    paddle.position = glm::vec3(-2, 5, 0);
-    paddle.model = &paddleModel;
-    paddle.name = "PlayerPaddle";
+    Object& playerPaddle = getNewObject();
+    playerPaddle.position = glm::vec3(-2.0f, 5.0f, 14.0f);
+    playerPaddle.model = &paddleModel;
+    playerPaddle.name = "PlayerPaddle";
     BoxCollider collider;
     collider.offset = glm::vec3(0.0f, 1.7f, 0.895f);
     collider.size = glm::vec3(3.1f, 3.1f, 2.0f);
-    collider.ownerId = paddle.id;
+    collider.ownerId = playerPaddle.id;
     colliders.emplace_back(collider);
-    playerId = paddle.id;
+    playerId = playerPaddle.id;
+
+    Object& opponentPaddle = getNewObject();
+    opponentPaddle.position = glm::vec3(-2.0f, 5.0f, -14.0f);
+    rotateObject(opponentPaddle, opponentPaddle.up, 180.0f);
+    opponentPaddle.model = &paddleModel;
+    opponentPaddle.name = "OpponentPadddle";
+    opponentId = opponentPaddle.id;
+    collider.offset = glm::vec3(0.0f, 1.7f, -0.895f);
+    collider.ownerId = opponentPaddle.id;
+    colliders.emplace_back(collider);
 
     Object& table = getNewObject();
     table.model = &tableModel;
@@ -169,7 +179,7 @@ void Game::init() {
     colliders.emplace_back(collider);
 
     Object& ball = getNewObject();
-    ball.position = glm::vec3(-2, 10, 5);
+    ball.position = glm::vec3(-2.0f, 10.0f, 5.0f);
     ball.model = &ballModel;
     ball.name = "Ball";
     collider = BoxCollider();
@@ -179,6 +189,7 @@ void Game::init() {
     Physics phys;
     phys.ownerId = ball.id;
     phys.lastPosition = ball.position;
+    addVelocity(phys, glm::vec3(25.0f, 0.0f, 0.0f), 1.0f / 144.0f);
     physics.emplace_back(phys);
 
     Object& leftWall = getNewObject();
@@ -293,7 +304,7 @@ void Game::handleBallBounce(Object& ball, Object& wall) {
 
     if (wallPos.x > 0.0f) { // right wall
         float displacement = ball.position.x - ballPhysics.lastPosition.x;
-        ball.position.x = wall.position.x + wallCol.offset.x + wallCol.size.x * 0.5f + ballCol.offset.x + ballCol.size.x * 0.5f;
+        ball.position.x = wall.position.x - wallCol.offset.x - wallCol.size.x * 0.5f - ballCol.offset.x - ballCol.size.x * 0.5f;
         ballPhysics.lastPosition.x = ball.position.x + displacement;
     }
     else if (wallPos.x < 0.0f) { // left wall
@@ -500,9 +511,6 @@ void Game::initKeyDebounce() {
 }
 
 void Game::processKeyboard(GLFWwindow* window, float dt) {
-    glm::vec3 movement = glm::vec3();
-
-
     if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS && !keyDebounce.at(GLFW_KEY_V)) {
         keyDebounce[GLFW_KEY_V] = true;
         currentCameraType = (CameraType)(((int)currentCameraType + 1) % NUM_CAM_TYPES);
@@ -515,19 +523,30 @@ void Game::processKeyboard(GLFWwindow* window, float dt) {
     }
     else if (glfwGetKey(window, GLFW_KEY_G) == GLFW_RELEASE) keyDebounce[GLFW_KEY_G] = false;
 
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+        Physics& ballPhys = *getPhysicsFromId(ballId)[0];
+        glm::vec3 lastVel = getVelocity(ballPhys, dt);
+        getObjectFromId(ballId).position = glm::vec3(-2, 10, 5);
+        setVelocity(ballPhys, lastVel, dt);
+    }
+
     if (currentCameraType == CameraType::FREE) {
+        glm::vec3 movement = glm::vec3();
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-            movement += glm::vec3(0, 0, 5);
+            movement += glm::vec3(0, 0, 1);
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            movement += glm::vec3(0, 0, -5);
+            movement += glm::vec3(0, 0, -1);
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-            movement += glm::vec3(-5, 0, 0);
+            movement += glm::vec3(-1, 0, 0);
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-            movement += glm::vec3(5, 0, 0);
+            movement += glm::vec3(1, 0, 0);
         if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-            movement += glm::vec3(0, 5, 0);
+            movement += glm::vec3(0, 1, 0);
         if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-            movement += glm::vec3(0, -5, 0);
+            movement += glm::vec3(0, -1, 0);
+
+        movement *= glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ? FREE_CAM_FAST_MOVE_SPEED : FREE_CAM_MOVE_SPEED;
+
         cameras[currentCameraType]->ProcessKeyboard(movement, dt);
     }
 }
