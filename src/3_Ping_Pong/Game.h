@@ -26,6 +26,8 @@ const float DEFAULT_PITCH_RATE = 150.0f;
 const float DEFAULT_YAW_RATE = 50.0f;
 const float DEFAULT_ROLL_RATE = 200.0f;
 const glm::vec3 DEFAULT_GRAVITY = glm::vec3(0.0f, -20.0f, 0.0f);
+const float MAX_PADDLE_BOUNCE_ANGLE = 65.0f;
+const unsigned int PHYSICS_RESOLUTION = 3;
 
 // Player settings
 const float FOV = 60.0f;
@@ -86,10 +88,11 @@ class Game {
 		std::vector<Physics> physics;
 
 		bool toggleGravity;
+		bool togglePause;
 
 		int playerId;
 		int ballId;
-		int enemyId;
+		int opponentId;
 
 		Camera stationaryCamera;
 		Camera followCamera;
@@ -100,8 +103,8 @@ class Game {
 		void processFollowCamera(float xoffset, float yoffset, GLboolean constrainPitch = true);
 		void updateFollowCamera();
 		
-		std::map<unsigned int, bool> keyDebounce;
-		void initKeyDebounce();
+		std::map<unsigned int, bool> keyDown;
+		void initKeyDown();
 
 		void initSkybox();
 		void initColliderOutline();
@@ -109,9 +112,9 @@ class Game {
 
 		Object& getNewObject();
 		Object& getNewObjectWithCollider();
-		Object& getObjectFromId(int id);
-		std::vector<BoxCollider*> getCollidersFromId(int id);
-		std::vector<Physics*> getPhysicsFromId(int id);
+		Object& getObjectById(int id);
+		std::vector<BoxCollider*> getCollidersById(int id);
+		std::vector<Physics*> getPhysicsById(int id);
 
 		glm::mat4 getProjection() const;
 
@@ -126,7 +129,8 @@ class Game {
 		
 		void rotateObject(Object& obj, glm::vec3 axis, float deg);
 
-		void handleBallBounce(Object& ball, Object& wall);
+		void handleBallBounce(Object& ball, Object& wall, BoxCollider& wallCol);
+		void handlePaddleBounce(Object& ball, Object& paddle);
 
 	public:
 		Game();
