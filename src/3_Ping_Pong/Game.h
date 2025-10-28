@@ -37,7 +37,7 @@ const float FREE_CAM_MOVE_SPEED = 6.0f;
 const float FREE_CAM_FAST_MOVE_SPEED = 24.0f;
 const unsigned int NUM_CAM_TYPES = 4;
 const float MAX_FOLLOW_CAM_DISTANCE = 40.0f;
-const float MIN_FOLLOW_CAM_DISTANCE = 1.0f;
+const float MIN_FOLLOW_CAM_DISTANCE = 0.0f;
 const float DEFAULT_FOLLOW_CAM_DISTANCE = (MAX_FOLLOW_CAM_DISTANCE + MIN_FOLLOW_CAM_DISTANCE) / 2.0f;
 const float DEFAULT_CAM_HEIGHT = 3.0f;
 enum CameraType {

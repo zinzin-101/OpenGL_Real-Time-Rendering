@@ -212,6 +212,23 @@ void Game::init() {
     phys.lastPosition = ball.position;
     physics.emplace_back(phys);
 
+    Object& topWall = getNewObject();
+    rotateObject(topWall, topWall.forward, -180.0f);
+    topWall.position = glm::vec3(0.0f, 18.0f, 0.0f);
+    topWall.model = &tableModel;
+    topWall.name = "TopWall";
+    collider = BoxCollider();
+    collider.offset = glm::vec3(0.0f, 1.9f, 0.0f);
+    collider.size = glm::vec3(16.0f, 5.0f, 27.5f);
+    collider.ownerId = topWall.id;
+    colliders.emplace_back(collider);
+
+    collider = BoxCollider();
+    collider.size = glm::vec3(17.75f, 1.3f, 0.3f);
+    collider.offset = glm::vec3(0.0f, -1.3f, 0.0f);
+    collider.ownerId = topWall.id;
+    colliders.emplace_back(collider);
+
     Object& leftWall = getNewObject();
     leftWall.name = "LeftWall";
     leftWall.model = &tableModel;
@@ -403,6 +420,26 @@ void Game::handleBallBounce(Object& ball, Object& wall, BoxCollider& wallCol) {
             return;
         }
         
+        // net
+        if (ballPhysics.lastPosition.z > 0.0f) { // toward player
+            float displacement = ball.position.z - ballPhysics.lastPosition.z;
+            ball.position.z = wall.position.z + wallCol.offset.z + wallCol.size.z * 0.5f + ballCol.offset.z + ballCol.size.z * 0.5f;
+            ballPhysics.lastPosition.z = ball.position.z + displacement;
+        }
+        else if (ballPhysics.lastPosition.z < 0.0f) { // toward opponent
+            float displacement = ball.position.z - ballPhysics.lastPosition.z;
+            ball.position.z = wall.position.z - wallCol.offset.z - wallCol.size.z * 0.5f - ballCol.offset.z - ballCol.size.z * 0.5f;
+            ballPhysics.lastPosition.z = ball.position.z + displacement;
+        }
+    }
+    else if (wallPos.y > 0.0f) { // top
+        if (wallCol.offset.y > 0.0f) { // surface
+            float displacement = ball.position.y - ballPhysics.lastPosition.y;
+            ball.position.y = wall.position.y + wallCol.offset.y - (wallCol.size.y * 0.5f + ballCol.offset.y + ballCol.size.y * 0.5f);
+            ballPhysics.lastPosition.y = ball.position.y + displacement * BOUNCE_COEFFICIENT;
+            return;
+        }
+
         // net
         if (ballPhysics.lastPosition.z > 0.0f) { // toward player
             float displacement = ball.position.z - ballPhysics.lastPosition.z;
@@ -705,6 +742,7 @@ void Game::initKeyDown() {
     keyDown[GLFW_KEY_ENTER] = false;
     keyDown[GLFW_KEY_O] = false;
     keyDown[GLFW_KEY_C] = false;
+    keyDown[GLFW_KEY_P] = false;
 }
 
 void Game::processKeyboard(GLFWwindow* window, float dt) {
@@ -728,11 +766,17 @@ void Game::processKeyboard(GLFWwindow* window, float dt) {
     }
     else if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_RELEASE) keyDown[GLFW_KEY_ENTER] = false;
 
+    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS && !keyDown.at(GLFW_KEY_P)) {
+        keyDown[GLFW_KEY_P] = true;
+        togglePause = !togglePause;
+    }
+    else if (glfwGetKey(window, GLFW_KEY_P) == GLFW_RELEASE) keyDown[GLFW_KEY_P] = false;
+
     if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS && !keyDown.at(GLFW_KEY_O)) {
         keyDown[GLFW_KEY_O] = true;
         autopilot = !autopilot;
     }
-    else if (glfwGetKey(window, GLFW_KEY_C) == GLFW_RELEASE) keyDown[GLFW_KEY_C] = false;
+    else if (glfwGetKey(window, GLFW_KEY_O) == GLFW_RELEASE) keyDown[GLFW_KEY_O] = false;
 
     if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS && !keyDown.at(GLFW_KEY_C)) {
         keyDown[GLFW_KEY_C] = true;
