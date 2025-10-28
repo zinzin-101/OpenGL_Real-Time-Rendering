@@ -11,6 +11,7 @@ bool firstMouse;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window, float dt);
 
@@ -40,6 +41,7 @@ int main()
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
     // tell GLFW to capture our mouse
@@ -140,6 +142,10 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 
     if (gamePtr != nullptr) gamePtr->processMouseMovement(xoffset, yoffset);
     //camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+    if (gamePtr != nullptr) gamePtr->processMouseButton(button, action);
 }
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called

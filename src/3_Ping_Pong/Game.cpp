@@ -129,7 +129,10 @@ void Game::init() {
 
     toggleGravity = true;
     togglePause = true;
-    autoplay = false;
+    autopilot = false;
+
+    isMovingPaddle = false;
+    sensitivity = DEFAULT_SENSITIVITY;
 
     glm::mat4 tableToWorld = 
         glm::scale(glm::mat4(1.0f), glm::vec3(0.1f)) *
@@ -430,6 +433,9 @@ void Game::handlePaddleBounce(Object& ball, Object& paddle) {
 }
 
 void Game::reset(float dt) {
+    getObjectById(playerId).position = glm::vec3(0.0f, 3.0f, 14.0f);
+    getObjectById(opponentId).position = glm::vec3(0.0f, 3.0f, -14.0f);
+    
     Object& ball = getObjectById(ballId);
     Physics& phys = *getPhysicsById(ballId)[0];
     ball.position = glm::vec3(0.0f, 4.0f, 0.0f);
@@ -505,15 +511,17 @@ void Game::update(float dt) {
 
     std::cout << "cam pos:" << cameras[currentCameraType]->Position << std::endl;
 
-    Object& player = getObjectById(playerId);
-    BoxCollider& playerCol = *getCollidersById(playerId)[0];
+    if (autopilot) {
+        Object& player = getObjectById(playerId);
+        BoxCollider& playerCol = *getCollidersById(playerId)[0];
+        player.position.x = ball.position.x - playerCol.offset.x;
+        player.position.x = ball.position.x - playerCol.offset.x;
+        player.position.y = ball.position.y - playerCol.offset.y;
+    }
+
     Object& opponent = getObjectById(opponentId);
     BoxCollider& opponentCol = *getCollidersById(opponentId)[0];
-    player.position.x = ball.position.x - playerCol.offset.x - 1.1f;
-    //player.position.x = ball.position.x - playerCol.offset.x;
-    player.position.y = ball.position.y - playerCol.offset.y;
-
-    opponent.position.x = ball.position.x + 1.1f;
+    opponent.position.x = ball.position.x;
     opponent.position.y = ball.position.y - opponentCol.offset.y;
 }
 
@@ -616,6 +624,12 @@ bool Game::isColliding(const BoxCollider& c1, const BoxCollider& c2) {
 }
 
 void Game::processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch) {
+    if (isMovingPaddle) {
+        glm::vec3 movement = glm::vec3(xoffset, yoffset, 0.0f) * sensitivity;
+        getObjectById(playerId).position += movement;
+        return;
+    }
+
     switch (currentCameraType) {
         case CameraType::FOLLOW_BALL:
             processFollowCamera(xoffset, yoffset);
@@ -651,6 +665,11 @@ void Game::processMouseScroll(float yoffset) {
     }
 }
 
+void Game::processMouseButton(int button, int action) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) isMovingPaddle = true;
+    else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) isMovingPaddle = false;
+}
+
 void Game::initKeyDown() {
     keyDown[GLFW_KEY_V] = false;
     keyDown[GLFW_KEY_G] = false;
@@ -681,7 +700,7 @@ void Game::processKeyboard(GLFWwindow* window, float dt) {
 
     if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS && !keyDown.at(GLFW_KEY_O)) {
         keyDown[GLFW_KEY_O] = true;
-        autoplay = !autoplay;
+        autopilot = !autopilot;
     }
     else if (glfwGetKey(window, GLFW_KEY_O) == GLFW_RELEASE) keyDown[GLFW_KEY_O] = false;
 
@@ -689,6 +708,14 @@ void Game::processKeyboard(GLFWwindow* window, float dt) {
 
     if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
         reset(dt);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+        sensitivity += 0.1f * dt;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+        sensitivity -= 0.1f * dt;
     }
 
     if (currentCameraType == CameraType::FREE) {

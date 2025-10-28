@@ -28,6 +28,7 @@ const float DEFAULT_ROLL_RATE = 200.0f;
 const glm::vec3 DEFAULT_GRAVITY = glm::vec3(0.0f, -20.0f, 0.0f);
 const float MAX_PADDLE_BOUNCE_ANGLE = 65.0f;
 const unsigned int PHYSICS_RESOLUTION = 3;
+const float DEFAULT_SENSITIVITY = 0.1f;
 
 // Player settings
 const float FOV = 60.0f;
@@ -90,7 +91,10 @@ class Game {
 
 		bool toggleGravity;
 		bool togglePause;
-		bool autoplay;
+		bool autopilot;
+
+		bool isMovingPaddle;
+		float sensitivity;
 
 		int playerId;
 		int ballId;
@@ -153,5 +157,6 @@ class Game {
 
 		void processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true);
 		void processMouseScroll(float yoffset);
+		void processMouseButton(int button, int action);
 		void processKeyboard(GLFWwindow* window, float dt);
 };
