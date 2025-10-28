@@ -185,7 +185,7 @@ void Game::init() {
     colliders.emplace_back(collider);
 
     collider = BoxCollider();
-    collider.size = glm::vec3(16.0f, 1.3f, 0.3f);
+    collider.size = glm::vec3(17.75f, 1.3f, 0.3f);
     collider.offset = glm::vec3(0.0f, 1.3f, 0.0f);
     collider.ownerId = table.id;
     colliders.emplace_back(collider);
@@ -210,8 +210,14 @@ void Game::init() {
     leftWall.position = glm::vec3(-11.0f, 8.0f, 0.0f);
     collider = BoxCollider();
     collider.ownerId = leftWall.id;
-    collider.offset = glm::vec3(0.0f, -1.0f, 0.0f);
+    collider.offset = glm::vec3(-0.45f, -1.0f, 0.0f);
     collider.size = glm::vec3(2.0f, 28.0f, 30.0f);
+    colliders.emplace_back(collider);
+
+    collider = BoxCollider();
+    collider.size = glm::vec3(1.3f, 17.75f, 0.3f);
+    collider.offset = glm::vec3(1.3f, 0.0f, 0.0f);
+    collider.ownerId = leftWall.id;
     colliders.emplace_back(collider);
 
     Object& rightWall = getNewObject();
@@ -221,8 +227,14 @@ void Game::init() {
     rightWall.position = glm::vec3(11.0f, 8.0f, 0.0f);
     collider = BoxCollider();
     collider.ownerId = rightWall.id;
-    collider.offset = glm::vec3(0.0f, -1.0f, 0.0f);
+    collider.offset = glm::vec3(0.45f, -1.0f, 0.0f);
     collider.size = glm::vec3(2.0f, 28.0f, 30.0f);
+    colliders.emplace_back(collider);
+
+    collider = BoxCollider();
+    collider.size = glm::vec3(1.3f, 17.75f, 0.3f);
+    collider.offset = glm::vec3(-1.3f, 0.0f, 0.0f);
+    collider.ownerId = rightWall.id;
     colliders.emplace_back(collider);
 
     Object& floor = getNewObject();
@@ -331,35 +343,66 @@ void Game::handleCollision(BoxCollider& col1, BoxCollider& col2) {
 void Game::handleBallBounce(Object& ball, Object& wall, BoxCollider& wallCol) {
     Physics& ballPhysics = *(getPhysicsById(ball.id))[0];
     BoxCollider& ballCol = *(getCollidersById(ball.id))[0];
+    BoxCollider& netCol = *(getCollidersById(wall.id))[1];
+
     glm::vec3 wallPos = wall.position;
 
     if (wallPos.x > 0.0f) { // right wall
+        if (&netCol == &wallCol) { 
+            if (ballPhysics.lastPosition.z > 0.0f) { // net toward player
+                float displacement = ball.position.z - ballPhysics.lastPosition.z;
+                ball.position.z = wall.position.z + wallCol.offset.z + (wallCol.size.z * 0.5f + ballCol.offset.z + ballCol.size.z * 0.5f);
+                ballPhysics.lastPosition.z = ball.position.z + displacement;
+            }
+            else if (ballPhysics.lastPosition.z < 0.0f) { // net toward opponent
+                float displacement = ball.position.z - ballPhysics.lastPosition.z;
+                ball.position.z = wall.position.z + wallCol.offset.z - (wallCol.size.z * 0.5f + ballCol.offset.z + ballCol.size.z * 0.5f);
+                ballPhysics.lastPosition.z = ball.position.z + displacement;
+            }
+            return;
+        }
+
         float displacement = ball.position.x - ballPhysics.lastPosition.x;
-        ball.position.x = wall.position.x - wallCol.offset.x - wallCol.size.x * 0.5f - ballCol.offset.x - ballCol.size.x * 0.5f;
-        ballPhysics.lastPosition.x = ball.position.x + displacement;
+        ball.position.x = wall.position.x + wallCol.offset.x - wallCol.size.x * 0.5f - ballCol.offset.x - ballCol.size.x * 0.5f;
+        ballPhysics.lastPosition.x = ball.position.x + displacement * 1.02f;
     }
     else if (wallPos.x < 0.0f) { // left wall
+        if (&netCol == &wallCol) { 
+            if (ballPhysics.lastPosition.z > 0.0f) { // net toward player
+                float displacement = ball.position.z - ballPhysics.lastPosition.z;
+                ball.position.z = wall.position.z + wallCol.offset.z + (wallCol.size.z * 0.5f + ballCol.offset.z + ballCol.size.z * 0.5f);
+                ballPhysics.lastPosition.z = ball.position.z + displacement;
+            }
+            else if (ballPhysics.lastPosition.z < 0.0f) { // net toward opponent
+                float displacement = ball.position.z - ballPhysics.lastPosition.z;
+                ball.position.z = wall.position.z + wallCol.offset.z - (wallCol.size.z * 0.5f + ballCol.offset.z + ballCol.size.z * 0.5f);
+                ballPhysics.lastPosition.z = ball.position.z + displacement;
+            }
+            return;
+        }
+
         float displacement = ball.position.x - ballPhysics.lastPosition.x;
         ball.position.x = wall.position.x + wallCol.offset.x + wallCol.size.x * 0.5f + ballCol.offset.x + ballCol.size.x * 0.5f;
-        ballPhysics.lastPosition.x = ball.position.x + displacement;
+        ballPhysics.lastPosition.x = ball.position.x + displacement * 1.02f;
     }
     else if (wallPos.y <= 0.0f) { // table
         if (wallCol.offset.y < 0.0f) { // surface
             float displacement = ball.position.y - ballPhysics.lastPosition.y;
             ball.position.y = wall.position.y + wallCol.offset.y + wallCol.size.y * 0.5f + ballCol.offset.y + ballCol.size.y * 0.5f;
             ballPhysics.lastPosition.y = ball.position.y + displacement * 1.02f;
+            return;
         }
-        else { // net
-            if (ballPhysics.lastPosition.z > 0.0f) { // toward player
-                float displacement = ball.position.z - ballPhysics.lastPosition.z;
-                ball.position.z = wall.position.z + wallCol.offset.z + wallCol.size.z * 0.5f + ballCol.offset.z + ballCol.size.z * 0.5f;
-                ballPhysics.lastPosition.z = ball.position.z + displacement;
-            }
-            else if (ballPhysics.lastPosition.z < 0.0f) { // toward opponent
-                float displacement = ball.position.z - ballPhysics.lastPosition.z;
-                ball.position.z = wall.position.z - wallCol.offset.z - wallCol.size.z * 0.5f - ballCol.offset.z - ballCol.size.z * 0.5f;
-                ballPhysics.lastPosition.z = ball.position.z + displacement;
-            }
+        
+        // net
+        if (ballPhysics.lastPosition.z > 0.0f) { // toward player
+            float displacement = ball.position.z - ballPhysics.lastPosition.z;
+            ball.position.z = wall.position.z + wallCol.offset.z + wallCol.size.z * 0.5f + ballCol.offset.z + ballCol.size.z * 0.5f;
+            ballPhysics.lastPosition.z = ball.position.z + displacement;
+        }
+        else if (ballPhysics.lastPosition.z < 0.0f) { // toward opponent
+            float displacement = ball.position.z - ballPhysics.lastPosition.z;
+            ball.position.z = wall.position.z - wallCol.offset.z - wallCol.size.z * 0.5f - ballCol.offset.z - ballCol.size.z * 0.5f;
+            ballPhysics.lastPosition.z = ball.position.z + displacement;
         }
     }
 }
@@ -389,9 +432,10 @@ void Game::handlePaddleBounce(Object& ball, Object& paddle) {
 void Game::reset(float dt) {
     Object& ball = getObjectById(ballId);
     Physics& phys = *getPhysicsById(ballId)[0];
-    ball.position = glm::vec3(0.0f, 10.0f, 0.0f);
+    ball.position = glm::vec3(0.0f, 4.0f, 0.0f);
     phys.lastPosition = ball.position;
-    addVelocity(phys, glm::vec3(0.0f, 0.0f, 5.0f), dt);
+    addVelocity(phys, glm::vec3(0.0f, 0.0f, -5.0f), dt);
+    //addVelocity(phys, glm::vec3(0.0f, 0.0f, 5.0f), dt);
 }
 
 void Game::accelerate(Physics& phys, glm::vec3 a) {
@@ -465,10 +509,11 @@ void Game::update(float dt) {
     BoxCollider& playerCol = *getCollidersById(playerId)[0];
     Object& opponent = getObjectById(opponentId);
     BoxCollider& opponentCol = *getCollidersById(opponentId)[0];
-    player.position.x = ball.position.x - playerCol.offset.x - 1.0f;
+    player.position.x = ball.position.x - playerCol.offset.x - 1.1f;
+    //player.position.x = ball.position.x - playerCol.offset.x;
     player.position.y = ball.position.y - playerCol.offset.y;
 
-    opponent.position.x = ball.position.x + 1.0f;
+    opponent.position.x = ball.position.x + 1.1f;
     opponent.position.y = ball.position.y - opponentCol.offset.y;
 }
 
