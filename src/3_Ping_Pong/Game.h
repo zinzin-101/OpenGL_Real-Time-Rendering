@@ -33,12 +33,13 @@ const unsigned int PHYSICS_RESOLUTION = 3;
 const float FOV = 60.0f;
 const float FREE_CAM_MOVE_SPEED = 6.0f;
 const float FREE_CAM_FAST_MOVE_SPEED = 24.0f;
-const unsigned int NUM_CAM_TYPES = 3;
-const float MAX_FOLLOW_CAM_DISTANCE = 10.0f;
+const unsigned int NUM_CAM_TYPES = 4;
+const float MAX_FOLLOW_CAM_DISTANCE = 40.0f;
 const float MIN_FOLLOW_CAM_DISTANCE = 1.0f;
 enum CameraType {
 	STATIONARY = 0,
-	FOLLOW,
+	FOLLOW_PADDLE,
+	FOLLOW_BALL,
 	FREE
 };
 
@@ -89,12 +90,14 @@ class Game {
 
 		bool toggleGravity;
 		bool togglePause;
+		bool autoplay;
 
 		int playerId;
 		int ballId;
 		int opponentId;
 
 		Camera stationaryCamera;
+		Camera behindCamera;
 		Camera followCamera;
 		Camera freeCamera;
 		Camera* cameras[NUM_CAM_TYPES];
@@ -102,6 +105,7 @@ class Game {
 		float cameraFollowDistance;
 		void processFollowCamera(float xoffset, float yoffset, GLboolean constrainPitch = true);
 		void updateFollowCamera();
+		void updateBehindCamera();
 		
 		std::map<unsigned int, bool> keyDown;
 		void initKeyDown();
@@ -127,6 +131,7 @@ class Game {
 		glm::vec3 getVelocity(Physics& phys, float dt);
 		void computePhysics(float dt);
 		
+		glm::vec3 getRotatedVector(glm::vec3 v, glm::vec3 axis, float deg);
 		void rotateObject(Object& obj, glm::vec3 axis, float deg);
 
 		void handleBallBounce(Object& ball, Object& wall, BoxCollider& wallCol);
