@@ -36,7 +36,7 @@ struct SpotLight {
     vec3 specular;       
 };
 
-#define NR_POINT_LIGHTS 1
+#define NR_POINT_LIGHTS 4
 
 in vec3 FragPos;
 in vec3 Normal;
@@ -70,6 +70,16 @@ void main()
     vec3 result =  vec3(0.0);
     for(int i = 0; i <  NR_POINT_LIGHTS; i++)
         result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
+
+    float magnitude = length(result);
+
+    if (magnitude < 0.25f) magnitude = 0.25f;
+    else if (magnitude < 0.5f) magnitude = 0.5f;
+    else if (magnitude < 0.75f) magnitude = 0.75f;
+    else magnitude = 1.0f;
+
+    result = normalize(result) * magnitude;
+
     FragColor = vec4(result, texColor.a * transparency);
 }
 
