@@ -11,6 +11,7 @@
 #include "Camera.h"
 #include "Model.h"
 
+#include <queue>
 #include <map>
 #include <vector>
 
@@ -44,6 +45,8 @@ const float MAX_FOLLOW_CAM_DISTANCE = 40.0f;
 const float MIN_FOLLOW_CAM_DISTANCE = 0.0f;
 const float DEFAULT_FOLLOW_CAM_DISTANCE = (MAX_FOLLOW_CAM_DISTANCE + MIN_FOLLOW_CAM_DISTANCE) / 2.0f;
 const float DEFAULT_CAM_HEIGHT = 3.0f;
+const float PLAYER_TRANSPARENCY = 0.5f;
+
 enum CameraType {
 	STATIONARY = 0,
 	FOLLOW_PADDLE,
@@ -75,6 +78,16 @@ struct Physics {
 	glm::vec3 acceleration;
 };
 
+struct RenderingObject {
+	RenderingObject(const Object* object, float distanceFromCamera): object(object), distanceFromCamera(distanceFromCamera) {}
+	const Object* object;
+	float distanceFromCamera;
+};
+
+struct RenderComparator {
+	bool operator()(const RenderingObject& obj1, const RenderingObject& obj2);
+};
+
 class Game {
 	private:
 		Shader shader;
@@ -95,6 +108,8 @@ class Game {
 		std::vector<Object> objects;
 		std::vector<BoxCollider> colliders;
 		std::vector<Physics> physics;
+
+		std::priority_queue<RenderingObject, std::vector<RenderingObject>, RenderComparator> renderQueue;
 
 		float dt;
 

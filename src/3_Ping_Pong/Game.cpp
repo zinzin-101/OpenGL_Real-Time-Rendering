@@ -8,6 +8,10 @@
 
 static ostream& operator<<(ostream& out, const glm::vec3& v);
 
+bool RenderComparator::operator()(const RenderingObject& obj1, const RenderingObject& obj2) {
+    return obj1.distanceFromCamera > obj2.distanceFromCamera;
+}
+
 Game::Game() :
     shader("vertex.vs", "fragment.fs"),
     outlineShader("collider_outline.vs", "collider_outline.fs"),
@@ -605,7 +609,9 @@ void Game::rotatePlayerPaddle(glm::vec3 axis, float deg) {
         if (type == CameraType::FREE || type == CameraType::FOLLOW_BALL) continue;
 
         Camera& camera = *cameras[i];
-        camera.Position = rotMat * glm::vec4(camera.Position, 0.0f);
+        float oldZ = camera.Position.z;
+        camera.Position = center;
+        camera.Position.z = oldZ;
         camera.Forward = rotMat * glm::vec4(camera.Forward, 0.0f);
         camera.WorldUp = rotMat * glm::vec4(camera.Up, 0.0f);
         camera.SetForwardVector(camera.Forward);
@@ -731,7 +737,14 @@ void Game::render(float dt) {
     shader.setFloat("pointLights[3].quadratic", 0.00001f);
     shader.setFloat("shininess", 20.0f);
 
+    renderQueue = std::priority_queue<RenderingObject, std::vector<RenderingObject>, RenderComparator>(); // clear priority queue
+
     for (const Object& obj : objects) {
+        if (obj.id == playerId && !autopilot) {
+            renderQueue.push(RenderingObject(&obj, glm::length(obj.position - cameras[currentCameraType]->Position)));
+            continue;
+        }
+
         if (obj.model != nullptr) {
             glm::mat4 rotMat(
                 glm::vec4(obj.right, 0.0f),
@@ -747,18 +760,40 @@ void Game::render(float dt) {
 
             shader.setMat4("model", model);
 
-            //if (obj.id == playerId && !autopilot) {
-            //    objectIdsToRenderAfter.emplace_back(obj.id);
-            //} 
-            //else {
-            //    shader.setFloat("transparency", 1.0f);
-            //    obj.model->Draw(shader);
-            //}
-
             shader.setFloat("transparency", 1.0f);
             obj.model->Draw(shader);
         }
     }
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDepthMask(GL_FALSE);
+    while (!renderQueue.empty()) {
+        RenderingObject renderingObj = renderQueue.top();
+        renderQueue.pop();
+
+        const Object& obj = *renderingObj.object;
+
+        glm::mat4 rotMat(
+            glm::vec4(obj.right, 0.0f),
+            glm::vec4(obj.up, 0.0f),
+            glm::vec4(obj.forward, 0.0f),
+            glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
+        );
+
+        glm::mat4 model =
+            glm::translate(glm::mat4(1.0f), obj.position) *
+            rotMat *
+            modelToWorld[obj.model];
+
+        shader.setMat4("model", model);
+
+        shader.setFloat("transparency", PLAYER_TRANSPARENCY);
+        obj.model->Draw(shader);
+
+    }
+    glDisable(GL_BLEND);
+    glDepthMask(GL_TRUE);
 
     // collider
     if (showCollider) {
