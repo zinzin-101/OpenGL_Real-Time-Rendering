@@ -1,6 +1,7 @@
 #include "Game.h"
-#include <learnopengl/filesystem.h>
+#include "Random.h"
 #include "VerticesData.h"
+#include <learnopengl/filesystem.h>
 #include <vector>
 #include <cmath>
 #include <ostream>
@@ -108,6 +109,8 @@ void Game::initColliderOutline() {
 }
 
 void Game::init() {
+    Random::init();
+
     GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
     int refreshRate = mode->refreshRate;
@@ -139,6 +142,9 @@ void Game::init() {
     isMovingPaddle = false;
     isAdjustingLook = false;
     sensitivity = DEFAULT_SENSITIVITY;
+
+    opponentSpeed = 0.0f;
+    opponentLastSpeed = opponentSpeed;
 
     glm::mat4 tableToWorld = 
         glm::scale(glm::mat4(1.0f), glm::vec3(0.1f)) *
@@ -274,12 +280,6 @@ void Game::init() {
 
     center = (topWall.position + table.position) / 2.0f;
     center.z = playerPaddle.position.z;
-
-    Object& sun = getNewObject();
-    sunId = sun.id;
-    sun.position = center;
-    sun.position.z = 0.0f;
-    sun.position.y = 30.0f;
 
     dt = 1.0f / (float)refreshRate;
     reset(dt);
@@ -491,9 +491,9 @@ void Game::reset(float dt) {
     
     Object& ball = getObjectById(ballId);
     Physics& phys = *getPhysicsById(ballId)[0];
-    ball.position = glm::vec3(0.0f, 4.0f, 0.0f);
+    ball.position = glm::vec3(0.0f, 5.0f, 0.0f);
     phys.lastPosition = ball.position;
-    addVelocity(phys, glm::vec3(0.0f, 0.0f, -5.0f), dt);
+    addVelocity(phys, glm::vec3(0.0f, 0.0f, -6.0f), dt);
     //addVelocity(phys, glm::vec3(0.0f, 0.0f, 5.0f), dt);
 }
 
@@ -561,8 +561,15 @@ void Game::update(float dt) {
     }
     
     Object& ball = getObjectById(ballId);
+    Physics& ballPhys = *getPhysicsById(ballId)[0];
     if (ball.position.y < -10.0f) {
         reset(dt);
+    }
+
+    float ballSpeed = glm::length(getVelocity(ballPhys, dt));
+    if (ballSpeed > MAX_BALL_SPEED) {
+        glm::vec3 newVelocity = glm::normalize((ball.position - ballPhys.lastPosition)) * ballSpeed;
+        setVelocity(ballPhys, newVelocity, dt);
     }
 
     if (autopilot) {
@@ -574,8 +581,16 @@ void Game::update(float dt) {
 
     Object& opponent = getObjectById(opponentId);
     BoxCollider& opponentCol = *getCollidersById(opponentId)[0];
-    opponent.position.x = ball.position.x;
-    opponent.position.y = ball.position.y - opponentCol.offset.y;
+    glm::vec3 targetPos = opponent.position;
+    targetPos.x = ball.position.x - opponentCol.offset.x;
+    targetPos.y = ball.position.y - opponentCol.offset.y;
+    float currentSpeed = (MAX_AI_MOVE_SPEED - MIN_AI_MOVE_SPEED) * Random::randFloat() * dt;
+    if ((opponentSpeed - opponentLastSpeed) > MAX_AI_MOVE_ACCELERATION) currentSpeed = MAX_AI_MOVE_ACCELERATION;
+    glm::vec3 moveVector = targetPos - opponent.position;
+    opponent.position += moveVector * currentSpeed;
+
+    opponentLastSpeed = opponentSpeed;
+    opponentSpeed = currentSpeed;
 }
 
 glm::mat4 Game::getProjection() const {
@@ -605,13 +620,49 @@ void Game::render(float dt) {
     shader.setMat4("view", view);
     shader.setVec3("viewPos", cameras[currentCameraType]->Position);
 
-    shader.setVec3("pointLights[0].position", getObjectById(sunId).position);
-    shader.setVec3("pointLights[0].ambient", glm::vec3(0.2f));
-    shader.setVec3("pointLights[0].diffuse", glm::vec3(0.3f));
+    glm::vec3 lightPos0, lightPos1, lightPos2, lightPos3;
+    lightPos3.y = 30.0f;
+    lightPos0 = lightPos1 = lightPos2 = lightPos3;
+    lightPos0.x = 30.0f;
+    lightPos1.x = -30.0f;
+    lightPos2.x = -30.0f;
+    lightPos3.x = 30.0f;
+    lightPos0.z = 10.0f;
+    lightPos1.z = 10.0f;
+    lightPos2.z = -10.0f;
+    lightPos3.z = -10.0f;
+
+    shader.setVec3("pointLights[0].position", lightPos0);
+    shader.setVec3("pointLights[0].ambient", glm::vec3(0.1f));
+    shader.setVec3("pointLights[0].diffuse", glm::vec3(0.2f));
     shader.setVec3("pointLights[0].specular", glm::vec3(0.3f));
-    shader.setFloat("pointLights[0].constant", 0.4f);
-    shader.setFloat("pointLights[0].linear", 0.00000014f);
-    shader.setFloat("pointLights[0].quadratic", 0.0000001f);
+    shader.setFloat("pointLights[0].constant", 0.5f);
+    shader.setFloat("pointLights[0].linear", 0.000014f);
+    shader.setFloat("pointLights[0].quadratic", 0.00001f);
+
+    shader.setVec3("pointLights[1].position", lightPos1);
+    shader.setVec3("pointLights[1].ambient", glm::vec3(0.1f));
+    shader.setVec3("pointLights[1].diffuse", glm::vec3(0.2f));
+    shader.setVec3("pointLights[1].specular", glm::vec3(0.3f));
+    shader.setFloat("pointLights[1].constant", 0.5f);
+    shader.setFloat("pointLights[1].linear", 0.000014f);
+    shader.setFloat("pointLights[1].quadratic", 0.00001f);
+
+    shader.setVec3("pointLights[2].position", lightPos2);
+    shader.setVec3("pointLights[2].ambient", glm::vec3(0.1f));
+    shader.setVec3("pointLights[2].diffuse", glm::vec3(0.2f));
+    shader.setVec3("pointLights[2].specular", glm::vec3(0.3f));
+    shader.setFloat("pointLights[2].constant", 0.5f);
+    shader.setFloat("pointLights[2].linear", 0.000014f);
+    shader.setFloat("pointLights[2].quadratic", 0.00001f);
+
+    shader.setVec3("pointLights[3].position", lightPos3);
+    shader.setVec3("pointLights[3].ambient", glm::vec3(0.1f));
+    shader.setVec3("pointLights[3].diffuse", glm::vec3(0.2f));
+    shader.setVec3("pointLights[3].specular", glm::vec3(0.3f));
+    shader.setFloat("pointLights[3].constant", 0.5f);
+    shader.setFloat("pointLights[3].linear", 0.000014f);
+    shader.setFloat("pointLights[3].quadratic", 0.00001f);
     shader.setFloat("shininess", 20.0f);
 
     for (const Object& obj : objects) {

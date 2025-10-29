@@ -29,7 +29,11 @@ const glm::vec3 DEFAULT_GRAVITY = glm::vec3(0.0f, -20.0f, 0.0f);
 const float MAX_PADDLE_BOUNCE_ANGLE = 65.0f;
 const unsigned int PHYSICS_RESOLUTION = 3;
 const float BOUNCE_COEFFICIENT = 1.25f;
+const float MAX_BALL_SPEED = 25.0f;
 const float DEFAULT_SENSITIVITY = 0.05f;
+const float MIN_AI_MOVE_SPEED = 5.0f;
+const float MAX_AI_MOVE_SPEED = 30.0f;
+const float MAX_AI_MOVE_ACCELERATION = 10.0f;
 
 // Player settings
 const float FOV = 60.0f;
@@ -111,7 +115,8 @@ class Game {
 		int ballId;
 		int opponentId;
 
-		int sunId;
+		float opponentSpeed;
+		float opponentLastSpeed;
 
 		Camera stationaryCamera;
 		Camera behindCamera;
