@@ -45,7 +45,7 @@ const float MAX_FOLLOW_CAM_DISTANCE = 40.0f;
 const float MIN_FOLLOW_CAM_DISTANCE = 0.0f;
 const float DEFAULT_FOLLOW_CAM_DISTANCE = (MAX_FOLLOW_CAM_DISTANCE + MIN_FOLLOW_CAM_DISTANCE) / 2.0f;
 const float DEFAULT_CAM_HEIGHT = 3.0f;
-const float PLAYER_TRANSPARENCY = 0.5f;
+const float PLAYER_OPACITY = 0.5f;
 
 enum CameraType {
 	STATIONARY = 0,
@@ -109,7 +109,7 @@ class Game {
 		std::vector<BoxCollider> colliders;
 		std::vector<Physics> physics;
 
-		std::priority_queue<RenderingObject, std::vector<RenderingObject>, RenderComparator> renderQueue;
+		std::priority_queue<RenderingObject, std::vector<RenderingObject>, RenderComparator> opacityRenderQueue;
 
 		float dt;
 

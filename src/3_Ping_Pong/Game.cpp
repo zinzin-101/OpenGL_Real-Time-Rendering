@@ -737,11 +737,11 @@ void Game::render(float dt) {
     shader.setFloat("pointLights[3].quadratic", 0.00001f);
     shader.setFloat("shininess", 20.0f);
 
-    renderQueue = std::priority_queue<RenderingObject, std::vector<RenderingObject>, RenderComparator>(); // clear priority queue
+    opacityRenderQueue = std::priority_queue<RenderingObject, std::vector<RenderingObject>, RenderComparator>(); // clear priority queue
 
     for (const Object& obj : objects) {
         if (obj.id == playerId && !autopilot) {
-            renderQueue.push(RenderingObject(&obj, glm::length(obj.position - cameras[currentCameraType]->Position)));
+            opacityRenderQueue.push(RenderingObject(&obj, glm::length(obj.position - cameras[currentCameraType]->Position)));
             continue;
         }
 
@@ -760,7 +760,7 @@ void Game::render(float dt) {
 
             shader.setMat4("model", model);
 
-            shader.setFloat("transparency", 1.0f);
+            shader.setFloat("opacity", 1.0f);
             obj.model->Draw(shader);
         }
     }
@@ -768,9 +768,9 @@ void Game::render(float dt) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDepthMask(GL_FALSE);
-    while (!renderQueue.empty()) {
-        RenderingObject renderingObj = renderQueue.top();
-        renderQueue.pop();
+    while (!opacityRenderQueue.empty()) {
+        RenderingObject renderingObj = opacityRenderQueue.top();
+        opacityRenderQueue.pop();
 
         const Object& obj = *renderingObj.object;
 
@@ -788,7 +788,7 @@ void Game::render(float dt) {
 
         shader.setMat4("model", model);
 
-        shader.setFloat("transparency", PLAYER_TRANSPARENCY);
+        shader.setFloat("opacity", PLAYER_OPACITY);
         obj.model->Draw(shader);
 
     }

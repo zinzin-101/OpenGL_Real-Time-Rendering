@@ -54,7 +54,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 
 uniform sampler2D texture_diffuse1;
-uniform float transparency;
+uniform float opacity;
 
 vec3 color;
 
@@ -80,7 +80,7 @@ void main()
 
     result = normalize(result) * magnitude;
 
-    FragColor = vec4(result, texColor.a * transparency);
+    FragColor = vec4(result, texColor.a * opacity);
 }
 
 // calculates the color when using a directional light.
