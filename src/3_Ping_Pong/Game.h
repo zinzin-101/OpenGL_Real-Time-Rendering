@@ -137,6 +137,7 @@ class Game {
 		void initSkybox();
 		void initColliderOutline();
 		void init();
+		void setup();
 
 		Object& getNewObject();
 		Object& getNewObjectWithCollider();
@@ -157,6 +158,9 @@ class Game {
 		
 		glm::vec3 getRotatedVector(glm::vec3 v, glm::vec3 axis, float deg);
 		void rotateObject(Object& obj, glm::vec3 axis, float deg);
+
+		void rotateEveryThing(glm::vec3 axis, float deg);
+		void rotatePlayerPaddle(glm::vec3 axis, float deg);
 
 		void handleBallBounce(Object& ball, Object& wall, BoxCollider& wallCol);
 		void handlePaddleBounce(Object& ball, Object& paddle);
