@@ -70,7 +70,7 @@ void main()
     vec3 result =  vec3(0.0);
     for(int i = 0; i <  NR_POINT_LIGHTS; i++)
         result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
-    FragColor = vec4(result, transparency);
+    FragColor = vec4(result, texColor.a * transparency);
 }
 
 // calculates the color when using a directional light.

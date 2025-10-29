@@ -586,9 +586,18 @@ void Game::render(float dt) {
     glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // don't forget to enable shader before setting uniforms
-    shader.use();
+    // skybox
+    skyboxShader.use();
+    glm::mat4 skyboxView = glm::mat4(1.0f);
+    glm::mat4 skyboxProjection = glm::mat4(1.0f);
+    Camera& camera = *cameras[currentCameraType];
+    skyboxView = glm::mat4(glm::mat3(glm::lookAt(camera.Position, camera.Position + camera.Forward, camera.Up)));
+    skyboxProjection = getProjection();
+    skyboxShader.setMat4("view", skyboxView);
+    skyboxShader.setMat4("projection", skyboxProjection);
+    drawSkybox();
 
+    shader.use();
     // view/projection transformations
     glm::mat4 projection = getProjection();
     glm::mat4 view = cameras[currentCameraType]->GetViewMatrix();
@@ -597,15 +606,13 @@ void Game::render(float dt) {
     shader.setVec3("viewPos", cameras[currentCameraType]->Position);
 
     shader.setVec3("pointLights[0].position", getObjectById(sunId).position);
-    shader.setVec3("pointLights[0].ambient", glm::vec3(0.2f) + glm::vec3(0.2f));
-    shader.setVec3("pointLights[0].diffuse", glm::vec3(0.2f));
-    shader.setVec3("pointLights[0].specular", glm::vec3(0.1f));
+    shader.setVec3("pointLights[0].ambient", glm::vec3(0.2f));
+    shader.setVec3("pointLights[0].diffuse", glm::vec3(0.3f));
+    shader.setVec3("pointLights[0].specular", glm::vec3(0.3f));
     shader.setFloat("pointLights[0].constant", 0.4f);
-    shader.setFloat("pointLights[0].linear", 0.0000014f);
+    shader.setFloat("pointLights[0].linear", 0.00000014f);
     shader.setFloat("pointLights[0].quadratic", 0.0000001f);
     shader.setFloat("shininess", 20.0f);
-
-    shader.setFloat("transparency", 1.0f);
 
     for (const Object& obj : objects) {
         if (obj.model != nullptr) {
@@ -623,6 +630,15 @@ void Game::render(float dt) {
 
             shader.setMat4("model", model);
 
+            //if (obj.id == playerId && !autopilot) {
+            //    objectIdsToRenderAfter.emplace_back(obj.id);
+            //} 
+            //else {
+            //    shader.setFloat("transparency", 1.0f);
+            //    obj.model->Draw(shader);
+            //}
+
+            shader.setFloat("transparency", 1.0f);
             obj.model->Draw(shader);
         }
     }
@@ -633,17 +649,6 @@ void Game::render(float dt) {
             drawCollider(collider);
         }
     }
-
-    // skybox
-    skyboxShader.use();
-    glm::mat4 skyboxView = glm::mat4(1.0f);
-    glm::mat4 skyboxProjection = glm::mat4(1.0f);
-    Camera& camera = *cameras[currentCameraType];
-    skyboxView = glm::mat4(glm::mat3(glm::lookAt(camera.Position, camera.Position + camera.Forward, camera.Up)));
-    skyboxProjection = getProjection();
-    skyboxShader.setMat4("view", skyboxView);
-    skyboxShader.setMat4("projection", skyboxProjection);
-    drawSkybox();
 }
 
 void Game::drawSkybox() {
