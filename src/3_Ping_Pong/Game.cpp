@@ -118,6 +118,22 @@ void Game::init() {
     initSkybox();
     initColliderOutline();
 
+    camLookVector = getRotatedVector(glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.0f), -5.0f);
+
+    stationaryCamera = Camera(glm::vec3(0.0f, 7.0f, 26.0f));
+    stationaryCamera.SetForwardVector(camLookVector);
+    stationaryCameraPosition = stationaryCamera.Position;
+    behindCamera = Camera();
+    followCamera = Camera();
+    freeCamera = Camera();
+    cameras[CameraType::STATIONARY] = &stationaryCamera;
+    cameras[CameraType::FOLLOW_PADDLE] = &behindCamera;
+    cameras[CameraType::FOLLOW_BALL] = &followCamera;
+    cameras[CameraType::FREE] = &freeCamera;
+    currentCameraType = CameraType::STATIONARY;
+    cameraFollowDistance = DEFAULT_FOLLOW_CAM_DISTANCE;
+    cameraHeight = DEFAULT_CAM_HEIGHT;
+
     toggleGravity = true;
     togglePause = true;
     autopilot = false;
@@ -158,22 +174,6 @@ void Game::init() {
 }
 
 void Game::setup() {
-    camLookVector = getRotatedVector(glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.0f), -5.0f);
-
-    stationaryCamera = Camera(glm::vec3(0.0f, 7.0f, 26.0f));
-    stationaryCamera.SetForwardVector(camLookVector);
-    stationaryCameraPosition = stationaryCamera.Position;
-    behindCamera = Camera();
-    followCamera = Camera();
-    freeCamera = Camera();
-    cameras[CameraType::STATIONARY] = &stationaryCamera;
-    cameras[CameraType::FOLLOW_PADDLE] = &behindCamera;
-    cameras[CameraType::FOLLOW_BALL] = &followCamera;
-    cameras[CameraType::FREE] = &freeCamera;
-    currentCameraType = CameraType::STATIONARY;
-    cameraFollowDistance = DEFAULT_FOLLOW_CAM_DISTANCE;
-    cameraHeight = DEFAULT_CAM_HEIGHT;
-
     Object& playerPaddle = getNewObject();
     playerPaddle.position = glm::vec3(0.0f, 3.0f, 14.0f);
     playerPaddle.model = &paddleModel;
@@ -555,6 +555,8 @@ void Game::rotateObject(Object& obj, glm::vec3 axis, float deg) {
 }
 
 void Game::rotateEveryThing(glm::vec3 axis, float deg) {
+    if ((int)glm::round(deg) % 90 != 0) return; // Can only rotate orthogonally due to AABB
+
     float angle = glm::radians(deg);
     glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), angle, axis);
     
@@ -577,13 +579,15 @@ void Game::rotateEveryThing(glm::vec3 axis, float deg) {
         if (type == CameraType::FREE || type == CameraType::FOLLOW_BALL) continue;
 
         Camera& camera = *cameras[i];
-        camera.Forward = rotMat * glm::vec4(camera.Forward, 1.0f);
-        camera.WorldUp = rotMat * glm::vec4(camera.Up, 1.0f);
+        camera.Forward = rotMat * glm::vec4(camera.Forward, 0.0f);
+        camera.WorldUp = rotMat * glm::vec4(camera.Up, 0.0f);
         camera.SetForwardVector(camera.Forward);
     }
 }
 
 void Game::rotatePlayerPaddle(glm::vec3 axis, float deg) {
+    if ((int)glm::round(deg) % 90 != 0) return; // Can only rotate orthogonally due to AABB
+
     float angle = glm::radians(deg);
     glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), angle, axis);
 
@@ -594,15 +598,16 @@ void Game::rotatePlayerPaddle(glm::vec3 axis, float deg) {
     player.position = rotMat * glm::vec4(player.position, 1.0f);
 
     playerCol.offset = rotMat * glm::vec4(playerCol.offset, 1.0f);
-    playerCol.size = rotMat * glm::vec4(playerCol.size, 1.0f);
+    //playerCol.size = rotMat * glm::vec4(playerCol.size, 1.0f);
 
     for (int i = 0; i < NUM_CAM_TYPES; i++) {
         CameraType type = (CameraType)i;
         if (type == CameraType::FREE || type == CameraType::FOLLOW_BALL) continue;
 
         Camera& camera = *cameras[i];
-        camera.Forward = rotMat * glm::vec4(camera.Forward, 1.0f);
-        camera.WorldUp = rotMat * glm::vec4(camera.Up, 1.0f);
+        camera.Position = rotMat * glm::vec4(camera.Position, 0.0f);
+        camera.Forward = rotMat * glm::vec4(camera.Forward, 0.0f);
+        camera.WorldUp = rotMat * glm::vec4(camera.Up, 0.0f);
         camera.SetForwardVector(camera.Forward);
     }
 }
@@ -926,13 +931,13 @@ void Game::processKeyboard(GLFWwindow* window, float dt) {
     if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS && !keyDown.at(GLFW_KEY_Z)) {
         keyDown[GLFW_KEY_Z] = true;
         //rotateEveryThing(glm::vec3(0, 0, 1), 90.0f);
-        rotatePlayerPaddle(glm::vec3(0, 0, 1), 90.0f);
+        rotatePlayerPaddle(glm::vec3(0, 0, -1), 90.0f);
     }
     else if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_RELEASE) keyDown[GLFW_KEY_Z] = false;
 
     if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS && !keyDown.at(GLFW_KEY_X)) {
         keyDown[GLFW_KEY_X] = true;
-        rotatePlayerPaddle(glm::vec3(0, 0, 1), -90.0f);
+        rotatePlayerPaddle(glm::vec3(0, 0, -1), -90.0f);
     }
     else if (glfwGetKey(window, GLFW_KEY_X) == GLFW_RELEASE) keyDown[GLFW_KEY_X] = false;
 
