@@ -272,6 +272,15 @@ void Game::init() {
     collider.size = glm::vec3(50.0f, 2.0f, 50.0f);
     colliders.emplace_back(collider);
 
+    center = (topWall.position + table.position) / 2.0f;
+    center.z = playerPaddle.position.z;
+
+    Object& sun = getNewObject();
+    sunId = sun.id;
+    sun.position = center;
+    sun.position.z = 0.0f;
+    sun.position.y = 30.0f;
+
     dt = 1.0f / (float)refreshRate;
     reset(dt);
 }
@@ -585,23 +594,37 @@ void Game::render(float dt) {
     glm::mat4 view = cameras[currentCameraType]->GetViewMatrix();
     shader.setMat4("projection", projection);
     shader.setMat4("view", view);
-    
+    shader.setVec3("viewPos", cameras[currentCameraType]->Position);
+
+    shader.setVec3("pointLights[0].position", getObjectById(sunId).position);
+    shader.setVec3("pointLights[0].ambient", glm::vec3(0.2f) + glm::vec3(0.2f));
+    shader.setVec3("pointLights[0].diffuse", glm::vec3(0.2f));
+    shader.setVec3("pointLights[0].specular", glm::vec3(0.1f));
+    shader.setFloat("pointLights[0].constant", 0.4f);
+    shader.setFloat("pointLights[0].linear", 0.0000014f);
+    shader.setFloat("pointLights[0].quadratic", 0.0000001f);
+    shader.setFloat("shininess", 20.0f);
+
+    shader.setFloat("transparency", 1.0f);
+
     for (const Object& obj : objects) {
-        glm::mat4 rotMat(
-            glm::vec4(obj.right, 0.0f),
-            glm::vec4(obj.up, 0.0f),
-            glm::vec4(obj.forward, 0.0f),
-            glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
-        );
+        if (obj.model != nullptr) {
+            glm::mat4 rotMat(
+                glm::vec4(obj.right, 0.0f),
+                glm::vec4(obj.up, 0.0f),
+                glm::vec4(obj.forward, 0.0f),
+                glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
+            );
 
-        glm::mat4 model =
-            glm::translate(glm::mat4(1.0f), obj.position) *
-            rotMat *
-            modelToWorld[obj.model];
+            glm::mat4 model =
+                glm::translate(glm::mat4(1.0f), obj.position) *
+                rotMat *
+                modelToWorld[obj.model];
 
-        shader.setMat4("model", model);
-        if (obj.model != nullptr) 
+            shader.setMat4("model", model);
+
             obj.model->Draw(shader);
+        }
     }
 
     // collider

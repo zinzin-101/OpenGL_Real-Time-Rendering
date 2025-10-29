@@ -99,17 +99,19 @@ class Game {
 		bool togglePause;
 		bool autopilot;
 
-
 		bool isMovingPaddle;
 		bool isAdjustingLook;
 		float sensitivity;
 		glm::vec3 camLookVector;
 		float cameraHeight;
 
+		glm::vec3 center;
 
 		int playerId;
 		int ballId;
 		int opponentId;
+
+		int sunId;
 
 		Camera stationaryCamera;
 		Camera behindCamera;
