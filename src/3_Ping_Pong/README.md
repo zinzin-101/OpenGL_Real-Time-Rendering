@@ -1,7 +1,7 @@
-## Ping Pong
-Table tennis but surreal. <br />
+# Ping Pong
+## Table tennis but surreal. <br />
 
-# Features:<br />
+## Features:<br />
 -Player controlled paddle <br />
 -Simple opponent AI <br />
 -Auto mode<br />
@@ -11,7 +11,7 @@ Table tennis but surreal. <br />
 -Gravity toggle<br />
 -Pause game<br />
 -Rotating the table axis and the gravity<br />
-# Controls:<br />
+## Controls:<br />
 Hold-left-click -> move paddle<br />
 Hold-right-click -> change look angle<br />
 Hold-left-and-right-click -> adjust camera height<br />
@@ -28,10 +28,11 @@ C -> toggle show collider<br />
 R -> reset<br />
 Up/Down arrows -> increase/decrease mouse sensitivity<br />
 
+## Credits
 Some code are modified from [https://learnopengl.com/](https://learnopengl.com/) <br />
 
 The [table](https://free3d.com/3d-model/pingpongtable-v2--618009.html), [ball](https://free3d.com/3d-model/tennis-ball-v1--806429.html) and [paddle](https://free3d.com/3d-model/pingpong-paddle-v1--337871.html) models are from [free3d.com](https://free3d.com/3d-model/)
 
+## Additional Info
 CMake is required to build the project <br />
-
 When starting the program it may take some time to load. <br />
