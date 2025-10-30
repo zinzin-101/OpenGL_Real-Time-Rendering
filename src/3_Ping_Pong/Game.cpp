@@ -486,7 +486,7 @@ void Game::handlePaddleBounce(Object& ball, Object& paddle) {
     );
 
     float zOffset = paddleCol.offset.z + (paddle.position.z < 0.0f ? 1.0f : -1.0f) * (paddleCol.size.z * 0.5f + ballCol.offset.z + ballCol.size.z * 0.5f);
-    glm::vec3 newDisplacement = glm::normalize(direction) * distance;
+    glm::vec3 newDisplacement = glm::normalize(direction) * distance * PADDLE_BOUNCE_COEFFICIENT;
     ball.position.z = paddle.position.z + zOffset;
     ballPhys.lastPosition = ball.position + newDisplacement;
 }
@@ -505,7 +505,7 @@ void Game::reset(float dt) {
     Physics& phys = *getPhysicsById(ballId)[0];
     ball.position = glm::vec3(0.0f, 5.0f, 0.0f);
     phys.lastPosition = ball.position;
-    addVelocity(phys, glm::vec3(0.0f, 0.0f, -6.0f), dt);
+    setVelocity(phys, glm::vec3(0.0f, 0.0f, -6.0f), dt);
     //addVelocity(phys, glm::vec3(0.0f, 0.0f, 5.0f), dt);
 }
 
@@ -627,21 +627,22 @@ void Game::update(float dt) {
 
     if (togglePause) return;
 
+    Object& ball = getObjectById(ballId);
+    Physics& ballPhys = *getPhysicsById(ballId)[0];
+
     for (unsigned int i = 0; i < PHYSICS_RESOLUTION; i++) {
         computePhysics(dt / (float)PHYSICS_RESOLUTION);
         computeCollision();
-    }
-    
-    Object& ball = getObjectById(ballId);
-    Physics& ballPhys = *getPhysicsById(ballId)[0];
-    if (ball.position.y < -10.0f) {
-        reset(dt);
-    }
 
-    float ballSpeed = glm::length(getVelocity(ballPhys, dt));
-    if (ballSpeed > MAX_BALL_SPEED) {
-        glm::vec3 newVelocity = glm::normalize((ball.position - ballPhys.lastPosition)) * ballSpeed;
-        setVelocity(ballPhys, newVelocity, dt);
+        float ballSpeed = glm::length(getVelocity(ballPhys, dt / (float)PHYSICS_RESOLUTION));
+        if (ballSpeed > MAX_BALL_SPEED) {
+            glm::vec3 newVelocity = glm::normalize((ball.position - ballPhys.lastPosition)) * ballSpeed;
+            setVelocity(ballPhys, newVelocity, dt / (float)PHYSICS_RESOLUTION);
+        }
+
+        if (ball.position.y < -10.0f) {
+            reset(dt / (float)PHYSICS_RESOLUTION);
+        }
     }
 
     if (autopilot) {
@@ -851,13 +852,13 @@ bool Game::isColliding(const BoxCollider& c1, const BoxCollider& c2) {
 
 void Game::processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch) {
     if (isAdjustingLook && isMovingPaddle) {
-        cameraHeight += yoffset * dt;
+        cameraHeight += yoffset * sensitivity;
         return;
     }
 
     if (isAdjustingLook) {
-        camLookVector = getRotatedVector(camLookVector, cameras[CameraType::STATIONARY]->Right, yoffset * dt);
-        camLookVector = getRotatedVector(camLookVector, -cameras[CameraType::STATIONARY]->WorldUp, xoffset * dt);
+        camLookVector = getRotatedVector(camLookVector, cameras[CameraType::STATIONARY]->Right, yoffset * sensitivity);
+        camLookVector = getRotatedVector(camLookVector, -cameras[CameraType::STATIONARY]->WorldUp, xoffset * sensitivity);
         return;
     }
 
