@@ -1,6 +1,10 @@
 # Ping Pong
 ## Table tennis but surreal. <br />
-
+![](https://github.com/zinzin-101/OpenGL_Real-Time-Rendering/blob/main/src/3_Ping_Pong/gif/pongshowcase1.gif) <br />
+![](https://github.com/zinzin-101/OpenGL_Real-Time-Rendering/blob/main/src/3_Ping_Pong/gif/pongshowcase2.gif) <br />
+![](https://github.com/zinzin-101/OpenGL_Real-Time-Rendering/blob/main/src/3_Ping_Pong/gif/pongshowcase3.gif) <br />
+![](https://github.com/zinzin-101/OpenGL_Real-Time-Rendering/blob/main/src/3_Ping_Pong/gif/pongshowcase3.gif) <br />
+![](https://github.com/zinzin-101/OpenGL_Real-Time-Rendering/blob/main/src/3_Ping_Pong/gif/pongshowcase4.gif) <br />
 ## Features:<br />
 -Player controlled paddle <br />
 -Simple opponent AI <br />
@@ -31,7 +35,7 @@ Up/Down arrows -> increase/decrease mouse sensitivity<br />
 ## Credits
 Some code are modified from [https://learnopengl.com/](https://learnopengl.com/) <br />
 
-The [table](https://free3d.com/3d-model/pingpongtable-v2--618009.html), [ball](https://free3d.com/3d-model/tennis-ball-v1--806429.html) and [paddle](https://free3d.com/3d-model/pingpong-paddle-v1--337871.html) models are from [free3d.com](https://free3d.com/3d-model/)
+The [table](https://free3d.com/3d-model/pingpongtable-v2--618009.html), [ball](https://free3d.com/3d-model/tennis-ball-v1--806429.html) and [paddle](https://free3d.com/3d-model/pingpong-paddle-v1--337871.html) models are from [free3d.com](https://free3d.com/)
 
 ## Additional Info
 CMake is required to build the project <br />
