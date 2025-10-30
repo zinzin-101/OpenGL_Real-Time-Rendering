@@ -18,20 +18,19 @@
 // settings
 const unsigned int SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 900;
+const int TARGET_FPS = 60;
+const double MIN_TIME_PER_FRAME = 1.0 / (double)TARGET_FPS;
 
 const double PI = 3.14159265358979323846;
 
 // Game settings
-const float DEFAULT_PLANE_SPEED = 100.0f;
-const float DEFAULT_PITCH_RATE = 150.0f;
-const float DEFAULT_YAW_RATE = 50.0f;
-const float DEFAULT_ROLL_RATE = 200.0f;
-const glm::vec3 DEFAULT_GRAVITY = glm::vec3(0.0f, -20.0f, 0.0f);
+const float DEFAULT_GRAVITY_SCALAR = 20.0f;
+const glm::vec3 DEFAULT_GRAVITY = glm::vec3(0.0f, DEFAULT_GRAVITY_SCALAR, 0.0f);
 const float MAX_PADDLE_BOUNCE_ANGLE = 65.0f;
-const unsigned int PHYSICS_RESOLUTION = 3;
+const unsigned int PHYSICS_ITERATIONS = 3;
 const float BOUNCE_COEFFICIENT = 1.0f;
-const float PADDLE_BOUNCE_COEFFICIENT = 1.1f;
-const float MAX_BALL_SPEED = 15.0f;
+const float PADDLE_BOUNCE_COEFFICIENT = 1.075f;
+const float MAX_BALL_SPEED = 35.0f;
 const float DEFAULT_SENSITIVITY = 0.05f;
 const float MIN_AI_MOVE_SPEED = 5.0f;
 const float MAX_AI_MOVE_SPEED = 30.0f;
@@ -47,12 +46,20 @@ const float MIN_FOLLOW_CAM_DISTANCE = 0.0f;
 const float DEFAULT_FOLLOW_CAM_DISTANCE = (MAX_FOLLOW_CAM_DISTANCE + MIN_FOLLOW_CAM_DISTANCE) / 2.0f;
 const float DEFAULT_CAM_HEIGHT = 3.0f;
 const float PLAYER_OPACITY = 0.5f;
+const float CAM_LERP_SPEED = 10.0f;
 
 enum CameraType {
 	STATIONARY = 0,
 	FOLLOW_PADDLE,
 	FOLLOW_BALL,
 	FREE
+};
+
+enum GravityDirection {
+	DOWN = 0,
+	RIGHT,
+	UP,
+	LEFT
 };
 
 struct Object {
@@ -110,6 +117,9 @@ class Game {
 		std::vector<BoxCollider> colliders;
 		std::vector<Physics> physics;
 
+		glm::vec3 gravity[4];
+		GravityDirection currentGravityDirection;
+
 		std::priority_queue<RenderingObject, std::vector<RenderingObject>, RenderComparator> opacityRenderQueue;
 
 		float dt;
@@ -118,6 +128,7 @@ class Game {
 		bool toggleGravity;
 		bool togglePause;
 		bool autopilot;
+		bool toggleCameraLerp;
 
 		bool isMovingPaddle;
 		bool isAdjustingLook;

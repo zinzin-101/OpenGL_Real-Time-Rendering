@@ -115,25 +115,13 @@ void Game::initColliderOutline() {
 void Game::init() {
     Random::init();
 
-    GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
-    const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
-    int refreshRate = mode->refreshRate;
+    //GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
+    //const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
+    //int refreshRate = mode->refreshRate;
 
     initSkybox();
     initColliderOutline();
 
-    camLookVector = getRotatedVector(glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.0f), -5.0f);
-
-    stationaryCamera = Camera(glm::vec3(0.0f, 7.0f, 26.0f));
-    stationaryCamera.SetForwardVector(camLookVector);
-    stationaryCameraPosition = stationaryCamera.Position;
-    behindCamera = Camera();
-    followCamera = Camera();
-    freeCamera = Camera();
-    cameras[CameraType::STATIONARY] = &stationaryCamera;
-    cameras[CameraType::FOLLOW_PADDLE] = &behindCamera;
-    cameras[CameraType::FOLLOW_BALL] = &followCamera;
-    cameras[CameraType::FREE] = &freeCamera;
     currentCameraType = CameraType::STATIONARY;
     cameraFollowDistance = DEFAULT_FOLLOW_CAM_DISTANCE;
     cameraHeight = DEFAULT_CAM_HEIGHT;
@@ -142,6 +130,7 @@ void Game::init() {
     togglePause = true;
     autopilot = false;
     showCollider = false;
+    toggleCameraLerp = true;
 
     isMovingPaddle = false;
     isAdjustingLook = false;
@@ -149,6 +138,11 @@ void Game::init() {
 
     opponentSpeed = 0.0f;
     opponentLastSpeed = opponentSpeed;
+
+    gravity[GravityDirection::DOWN] = DEFAULT_GRAVITY_SCALAR * glm::vec3(0.0f, -1.0f, 0.0f);
+    gravity[GravityDirection::RIGHT] = DEFAULT_GRAVITY_SCALAR * glm::vec3(1.0f, 0.0f, 0.0f);
+    gravity[GravityDirection::UP] = DEFAULT_GRAVITY_SCALAR * glm::vec3(0.0f, 1.0f, 0.0f);
+    gravity[GravityDirection::LEFT] = DEFAULT_GRAVITY_SCALAR * glm::vec3(-1.0f, 0.0f, 0.0f);
 
     glm::mat4 tableToWorld = 
         glm::scale(glm::mat4(1.0f), glm::vec3(0.1f)) *
@@ -173,11 +167,29 @@ void Game::init() {
         glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     modelToWorld[&floorModel] = floorToWorld;
 
-    dt = 1.0f / (float)refreshRate;
+    dt = 1.0f / (float)TARGET_FPS;
     reset(dt);
 }
 
 void Game::setup() {
+    camLookVector = getRotatedVector(glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.0f), -5.0f);
+    stationaryCamera = Camera(glm::vec3(0.0f, 7.0f, 26.0f));
+    stationaryCamera.SetForwardVector(camLookVector);
+    stationaryCameraPosition = stationaryCamera.Position;
+    stationaryCamera.UseLerp = true;
+    stationaryCamera.LerpSpeed = CAM_LERP_SPEED;
+    behindCamera = Camera();
+    behindCamera.UseLerp = true;
+    behindCamera.LerpSpeed = CAM_LERP_SPEED;
+    followCamera = Camera();
+    freeCamera = Camera();
+    cameras[CameraType::STATIONARY] = &stationaryCamera;
+    cameras[CameraType::FOLLOW_PADDLE] = &behindCamera;
+    cameras[CameraType::FOLLOW_BALL] = &followCamera;
+    cameras[CameraType::FREE] = &freeCamera;
+
+    currentGravityDirection = GravityDirection::DOWN;
+
     Object& playerPaddle = getNewObject();
     playerPaddle.position = glm::vec3(0.0f, 3.0f, 14.0f);
     playerPaddle.model = &paddleModel;
@@ -346,7 +358,7 @@ void Game::computeCollision() {
             if (col1.ownerId == col2.ownerId) continue;
 
             if (isColliding(col1, col2)) {
-                std::cout << getObjectById(col1.ownerId).name << " and " << getObjectById(col2.ownerId).name << " is colliding" << std::endl;
+                //std::cout << getObjectById(col1.ownerId).name << " and " << getObjectById(col2.ownerId).name << " is colliding" << std::endl;
                 handleCollision(col1, col2);
             }
         }
@@ -505,7 +517,7 @@ void Game::reset(float dt) {
     Physics& phys = *getPhysicsById(ballId)[0];
     ball.position = glm::vec3(0.0f, 5.0f, 0.0f);
     phys.lastPosition = ball.position;
-    setVelocity(phys, glm::vec3(0.0f, 0.0f, -6.0f), dt);
+    setVelocity(phys, glm::vec3(0.0f, 1.5f, -7.5f), dt);
     //addVelocity(phys, glm::vec3(0.0f, 0.0f, 5.0f), dt);
 }
 
@@ -530,7 +542,7 @@ void Game::computePhysics(float dt) {
     for (Physics& p : physics) {
         Object& obj = getObjectById(p.ownerId);
 
-        if (toggleGravity) accelerate(p, DEFAULT_GRAVITY);
+        if (toggleGravity) accelerate(p, gravity[currentGravityDirection]);
 
         glm::vec3 displacement = obj.position - p.lastPosition;
         p.lastPosition = obj.position;
@@ -599,7 +611,7 @@ void Game::rotatePlayerPaddle(glm::vec3 axis, float deg) {
     BoxCollider& playerCol = *getCollidersById(playerId)[0];
 
     rotateObject(player, axis, deg);
-    player.position = rotMat * glm::vec4(player.position, 1.0f);
+    player.position = glm::translate(glm::mat4(1.0f), player.position) * rotMat * glm::translate(glm::mat4(1.0f), -player.position) * glm::vec4(player.position, 1.0f);
 
     playerCol.offset = rotMat * glm::vec4(playerCol.offset, 1.0f);
     //playerCol.size = rotMat * glm::vec4(playerCol.size, 1.0f);
@@ -616,32 +628,42 @@ void Game::rotatePlayerPaddle(glm::vec3 axis, float deg) {
         camera.WorldUp = rotMat * glm::vec4(camera.Up, 0.0f);
         camera.SetForwardVector(camera.Forward);
     }
+
+    if (deg > 0) {
+        int nextDir = currentGravityDirection - 1;
+        if (nextDir < 0) nextDir = GravityDirection::LEFT;
+        currentGravityDirection = (GravityDirection)nextDir;
+    }
+    else {
+        currentGravityDirection = (GravityDirection)((currentGravityDirection + 1) % 4);
+    }
+        
 }
 
 void Game::update(float dt) {
     if (currentCameraType == CameraType::STATIONARY) updateStationaryCamera();
-    if (currentCameraType == CameraType::FOLLOW_BALL) updateFollowCamera();
     if (currentCameraType == CameraType::FOLLOW_PADDLE) updateBehindCamera();
+    if (currentCameraType == CameraType::FOLLOW_BALL) updateFollowCamera();
 
-    this->dt = dt;
+    cameras[currentCameraType]->UpdateLerp(dt);
 
     if (togglePause) return;
 
     Object& ball = getObjectById(ballId);
     Physics& ballPhys = *getPhysicsById(ballId)[0];
 
-    for (unsigned int i = 0; i < PHYSICS_RESOLUTION; i++) {
-        computePhysics(dt / (float)PHYSICS_RESOLUTION);
+    for (unsigned int i = 0; i < PHYSICS_ITERATIONS; i++) {
+        computePhysics(dt / (float)PHYSICS_ITERATIONS);
         computeCollision();
 
-        float ballSpeed = glm::length(getVelocity(ballPhys, dt / (float)PHYSICS_RESOLUTION));
+        float ballSpeed = glm::length(getVelocity(ballPhys, dt / (float)PHYSICS_ITERATIONS));
         if (ballSpeed > MAX_BALL_SPEED) {
-            glm::vec3 newVelocity = glm::normalize((ball.position - ballPhys.lastPosition)) * ballSpeed;
-            setVelocity(ballPhys, newVelocity, dt / (float)PHYSICS_RESOLUTION);
+            glm::vec3 newVelocity = glm::normalize((ball.position - ballPhys.lastPosition)) * MAX_BALL_SPEED;
+            setVelocity(ballPhys, newVelocity, dt / (float)PHYSICS_ITERATIONS);
         }
 
-        if (ball.position.y < -10.0f) {
-            reset(dt / (float)PHYSICS_RESOLUTION);
+        if (glm::length(ball.position) > 30.0f) {
+            reset(dt);
         }
     }
 
@@ -664,6 +686,8 @@ void Game::update(float dt) {
 
     opponentLastSpeed = opponentSpeed;
     opponentSpeed = currentSpeed;
+
+    this->dt = dt;
 }
 
 glm::mat4 Game::getProjection() const {
@@ -679,7 +703,8 @@ void Game::render(float dt) {
     glm::mat4 skyboxView = glm::mat4(1.0f);
     glm::mat4 skyboxProjection = glm::mat4(1.0f);
     Camera& camera = *cameras[currentCameraType];
-    skyboxView = glm::mat4(glm::mat3(glm::lookAt(camera.Position, camera.Position + camera.Forward, camera.Up)));
+    //skyboxView = glm::mat4(glm::mat3(glm::lookAt(camera.Position, camera.Position + camera.Forward, camera.Up)));
+    skyboxView = glm::mat4((glm::mat3)camera.GetViewMatrix());
     skyboxProjection = getProjection();
     skyboxShader.setMat4("view", skyboxView);
     skyboxShader.setMat4("projection", skyboxProjection);
@@ -863,6 +888,7 @@ void Game::processMouseMovement(float xoffset, float yoffset, GLboolean constrai
     }
 
     if (isMovingPaddle) {
+        if (togglePause) return;
         glm::vec3 movement = (cameras[currentCameraType]->Right * xoffset + cameras[CameraType::STATIONARY]->WorldUp * yoffset) * sensitivity;
         getObjectById(playerId).position += movement;
         return;
@@ -886,7 +912,8 @@ void Game::processFollowCamera(float xoffset, float yoffset, GLboolean constrain
 }
 
 void Game::updateStationaryCamera() {
-    stationaryCamera.SetForwardVector(camLookVector);
+    cameras[CameraType::STATIONARY]->UseLerp = toggleCameraLerp;
+    cameras[CameraType::STATIONARY]->SetForwardVector(camLookVector);
     cameras[CameraType::STATIONARY]->Position = stationaryCameraPosition + (cameras[CameraType::STATIONARY]->Up * cameraHeight) - camLookVector * (cameraFollowDistance - DEFAULT_FOLLOW_CAM_DISTANCE);
 }
 
@@ -897,6 +924,7 @@ void Game::updateFollowCamera() {
 
 void Game::updateBehindCamera() {
     Object& player = getObjectById(playerId);
+    cameras[CameraType::FOLLOW_PADDLE]->UseLerp = toggleCameraLerp;
     cameras[CameraType::FOLLOW_PADDLE]->SetForwardVector(camLookVector);
     cameras[CameraType::FOLLOW_PADDLE]->Position = player.position + (cameras[CameraType::FOLLOW_PADDLE]->Up * cameraHeight) - camLookVector * cameraFollowDistance;
 }
@@ -923,6 +951,8 @@ void Game::initKeyDown() {
     keyDown[GLFW_KEY_P] = false;
     keyDown[GLFW_KEY_Z] = false;
     keyDown[GLFW_KEY_X] = false;
+    keyDown[GLFW_KEY_B] = false;
+    keyDown[GLFW_KEY_R] = false;
 }
 
 void Game::processKeyboard(GLFWwindow* window, float dt) {
@@ -977,11 +1007,20 @@ void Game::processKeyboard(GLFWwindow* window, float dt) {
     }
     else if (glfwGetKey(window, GLFW_KEY_X) == GLFW_RELEASE) keyDown[GLFW_KEY_X] = false;
 
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_RELEASE) keyDown[GLFW_KEY_DOWN] = false;
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS && !keyDown.at(GLFW_KEY_B)) {
+        keyDown[GLFW_KEY_B] = true;
+        toggleCameraLerp = !toggleCameraLerp;
+    }
+    else if (glfwGetKey(window, GLFW_KEY_B) == GLFW_RELEASE) keyDown[GLFW_KEY_B] = false;
 
-    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS && !keyDown.at(GLFW_KEY_R)) {
+        keyDown[GLFW_KEY_R] = true;
         reset(dt);
     }
+    else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_RELEASE) keyDown[GLFW_KEY_R] = false;
+
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_RELEASE) keyDown[GLFW_KEY_DOWN] = false;
+
 
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
         sensitivity += 0.1f * dt;

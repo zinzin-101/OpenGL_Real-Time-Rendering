@@ -74,7 +74,11 @@ int main()
         // --------------------
         float currentFrame = static_cast<float>(glfwGetTime());
         float dt = currentFrame - lastFrame;
+
+        if (dt < MIN_TIME_PER_FRAME) continue;
+
         lastFrame = currentFrame;
+
 
         // input
         // -----
