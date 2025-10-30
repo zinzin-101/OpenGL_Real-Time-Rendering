@@ -15,6 +15,7 @@
 -Pause game<br />
 -Rotating the table axis and the gravity<br />
 ## Controls:<br />
+### The game is paused on start so press Enter/P to unpause <br />
 Hold-left-click -> move paddle<br />
 Hold-right-click -> change look angle<br />
 Hold-left-and-right-click -> adjust camera height<br />

@@ -888,7 +888,7 @@ void Game::processMouseMovement(float xoffset, float yoffset, GLboolean constrai
     }
 
     if (isMovingPaddle) {
-        if (togglePause) return;
+        if (togglePause || currentCameraType == CameraType::FOLLOW_BALL || currentCameraType == CameraType::FREE) return;
         glm::vec3 movement = (cameras[currentCameraType]->Right * xoffset + cameras[CameraType::STATIONARY]->WorldUp * yoffset) * sensitivity;
         getObjectById(playerId).position += movement;
         return;
