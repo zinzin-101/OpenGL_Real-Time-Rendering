@@ -3,7 +3,6 @@
 ![](https://github.com/zinzin-101/OpenGL_Real-Time-Rendering/blob/main/src/3_Ping_Pong/gif/pongshowcase1.gif) <br />
 ![](https://github.com/zinzin-101/OpenGL_Real-Time-Rendering/blob/main/src/3_Ping_Pong/gif/pongshowcase2.gif) <br />
 ![](https://github.com/zinzin-101/OpenGL_Real-Time-Rendering/blob/main/src/3_Ping_Pong/gif/pongshowcase3.gif) <br />
-![](https://github.com/zinzin-101/OpenGL_Real-Time-Rendering/blob/main/src/3_Ping_Pong/gif/pongshowcase3.gif) <br />
 ![](https://github.com/zinzin-101/OpenGL_Real-Time-Rendering/blob/main/src/3_Ping_Pong/gif/pongshowcase4.gif) <br />
 ## Features:<br />
 -Player controlled paddle <br />
