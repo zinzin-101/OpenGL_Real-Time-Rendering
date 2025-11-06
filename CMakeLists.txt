@@ -95,6 +95,7 @@ set(PROJECTS
     1_Window_Shaker
     2_Terrain_Plane
     3_Ping_Pong
+    4_Skeletal_Animation
 )
 
 configure_file(configuration/root_directory.h.in configuration/root_directory.h)
