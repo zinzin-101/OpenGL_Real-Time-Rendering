@@ -4,7 +4,7 @@
 #include <map>
 #include <glm/glm.hpp>
 #include <assimp/scene.h>
-#include "bone.h"
+#include "Bone.h"
 #include <functional>
 #include <learnopengl/animdata.h>
 #include <learnopengl/model_animation.h>

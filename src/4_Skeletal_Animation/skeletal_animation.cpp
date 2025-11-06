@@ -7,8 +7,8 @@
 
 #include <learnopengl/filesystem.h>
 #include <learnopengl/shader_m.h>
-#include <learnopengl/camera.h>
-#include "animator.h"
+#include "Camera.h"
+#include "Animator.h"
 #include <learnopengl/model_animation.h>
 
 #include <iostream>
@@ -328,7 +328,7 @@ void processInput(GLFWwindow* window)
 	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
 		movement += glm::vec3(0, -1, 0);
 
-	camera.MyProcessKeyboard(movement * camera.MovementSpeed, deltaTime);
+	camera.ProcessKeyboard(movement * camera.MovementSpeed, deltaTime);
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
