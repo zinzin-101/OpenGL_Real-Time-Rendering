@@ -20,8 +20,9 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 
 // settings
-const unsigned int SCR_WIDTH = 1000;
-const unsigned int SCR_HEIGHT = 800;
+const unsigned int SCR_WIDTH = 1600;
+const unsigned int SCR_HEIGHT = 900;
+const unsigned int TARGET_FRAME_RATE = 60;
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -52,6 +53,10 @@ bool keyDownHandler(unsigned int key, GLFWwindow* window, std::map<unsigned int,
 	}
 	else if (glfwGetKey(window, key) == GLFW_RELEASE) keyDown[key] = false;
 	return false;
+}
+
+glm::mat4 getPerspective() {
+	return glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
 }
 
 int main()
@@ -102,6 +107,7 @@ int main()
 	// build and compile shaders
 	// -------------------------
 	Shader ourShader("anim_model.vs", "anim_model.fs");
+	Shader modelShader("model.vs", "model.fs");
 
 	
 	// load models
@@ -117,6 +123,15 @@ int main()
 	enum AnimState charState = IDLE;
 	float blendAmount = 0.0f;
 	float blendRate = 0.055f;
+
+	//stbi_set_flip_vertically_on_load(false);
+
+	Model boatModel(FileSystem::getPath("resources/objects/boat/boat.dae"));
+	glm::mat4 boatToWorld =
+		glm::scale(glm::mat4(1.0f), glm::vec3(0.02f)) *
+		glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+	//stbi_set_flip_vertically_on_load(true);
 
 	std::map<unsigned int, bool> keyDown;
 	keyDown[GLFW_KEY_1] = false;
@@ -135,6 +150,9 @@ int main()
 		// --------------------
 		float currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
+
+		if (deltaTime < (1.0f / (float)TARGET_FRAME_RATE)) continue;
+
 		lastFrame = currentFrame;
 
 		// input
@@ -272,11 +290,28 @@ int main()
 		glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		modelShader.use();
+		modelShader.setMat4("projection", getPerspective());
+		modelShader.setMat4("view", camera.GetViewMatrix());
+		glm::mat4 boatModelMat = glm::mat4(1.0f) * boatToWorld;
+		modelShader.setMat4("model", boatModelMat);
+		modelShader.setVec3("color", glm::vec3(0.6f));
+
+		modelShader.setVec3("pointLights[0].position", glm::vec3(0, 5, 0));
+		modelShader.setVec3("pointLights[0].ambient", glm::vec3(0.1f));
+		modelShader.setVec3("pointLights[0].diffuse", glm::vec3(0.2f));
+		modelShader.setVec3("pointLights[0].specular", glm::vec3(0.3f));
+		modelShader.setFloat("pointLights[0].constant", 0.5f);
+		modelShader.setFloat("pointLights[0].linear", 0.000014f);
+		modelShader.setFloat("pointLights[0].quadratic", 0.00001f);
+
+		boatModel.Draw(modelShader);
+
 		// don't forget to enable shader before setting uniforms
 		ourShader.use();
 
 		// view/projection transformations
-		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		glm::mat4 projection = getPerspective();
 		glm::mat4 view = camera.GetViewMatrix();
 		ourShader.setMat4("projection", projection);
 		ourShader.setMat4("view", view);
@@ -327,6 +362,8 @@ void processInput(GLFWwindow* window)
 		movement += glm::vec3(0, 1, 0);
 	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
 		movement += glm::vec3(0, -1, 0);
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+		movement *= 20.0f;
 
 	camera.ProcessKeyboard(movement * camera.MovementSpeed, deltaTime);
 }
