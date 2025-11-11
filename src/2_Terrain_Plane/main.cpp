@@ -84,13 +84,13 @@ void updateCamAfterPlane();
 glm::vec3 resetPosition;
 
 void initTerrain(GLuint& terrainVAO, GLuint& terrainVBO, GLuint& terrainEBO, VerticesData& verticesData);
-void initCube(GLuint& sunVAO, GLuint& sunVBO, GLuint& sunEBO);
+void initSun(GLuint& sunVAO, GLuint& sunVBO, GLuint& sunEBO);
 void initSea(GLuint& seaVAO, GLuint& seaVBO, GLuint& seaEBO);
 void updateObjects(SunData& sunData, float dt);
 void update(GLFWwindow*& window, TerrainData& terrainData, SunData& sunData);
 void render(TerrainData& terrainData, SunData& sunData);
 void drawTerrain(GLuint& terrainVAO, VerticesData& verticesData);
-void drawCube(GLuint& sunVAO);
+void drawSun(GLuint& sunVAO);
 void drawSea(GLuint& seaVAO);
 
 // settings
@@ -245,7 +245,7 @@ void initTerrain(GLuint& terrainVAO, GLuint& terrainVBO, GLuint& terrainEBO, Ver
     );
 }
 
-void initCube(GLuint& sunVAO, GLuint& sunVBO, GLuint& sunEBO) {
+void initSun(GLuint& sunVAO, GLuint& sunVBO, GLuint& sunEBO) {
     // bind VAO
     glGenVertexArrays(1, &sunVAO);
     glBindVertexArray(sunVAO);
@@ -319,7 +319,7 @@ void drawTerrain(GLuint& terrainVAO, VerticesData& verticesData) {
     }
 }
 
-void drawCube(GLuint& sunVAO) {
+void drawSun(GLuint& sunVAO) {
     glBindVertexArray(sunVAO);
     glDrawElements(GL_TRIANGLES, SphereFaceIndicesCount * 6, GL_UNSIGNED_INT, 0);
 }
@@ -419,7 +419,7 @@ void render(TerrainData& terrainData, SunData& sunData) {
     sunModel = glm::translate(sunModel, sunData.position);
     sunModel = glm::scale(sunModel, glm::vec3(100.0f, 100.0f, 100.0f));
     sunData.sunShader.setMat4("model", sunModel);
-    drawCube(sunData.sunVAO);
+    drawSun(sunData.sunVAO);
 
     // moon
     sunData.sunShader.setVec3("color", glm::vec3(1.0f, 1.0f, 1.0f));
@@ -427,7 +427,7 @@ void render(TerrainData& terrainData, SunData& sunData) {
     moonModel = glm::translate(moonModel, moonPosition);
     moonModel = glm::scale(moonModel, glm::vec3(50.0f, 50.0f, 50.0f));
     sunData.sunShader.setMat4("model", moonModel);
-    drawCube(sunData.sunVAO);
+    drawSun(sunData.sunVAO);
 
     // plane
     planeShader->use();
@@ -584,7 +584,7 @@ int main()
     GLuint sunVAO;
     GLuint sunVBO;
     GLuint sunEBO;
-    initCube(sunVAO, sunVBO, sunEBO);
+    initSun(sunVAO, sunVBO, sunEBO);
     Shader sunShader("LightSphere.vs", "LightSphere.fs");
     SunData sunData = SunData(sunVAO, sunVBO, sunEBO, sunShader, sunPosition);
 
