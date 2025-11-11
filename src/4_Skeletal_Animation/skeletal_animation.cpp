@@ -255,7 +255,21 @@ glm::vec3 rotateTowards(glm::vec3 current, glm::vec3 target, float maxRadiansDel
 }
 
 void handlePlayerLerp(float dt) {
-	playerCurrentForward = rotateTowards(playerCurrentForward, playerForward, playerLerpRate * dt);
+	float cos = glm::clamp(glm::dot(playerCurrentForward, playerForward), -1.0f, 1.0f);
+	float angle = glm::acos(cos);
+
+	if (angle < 1e-5f) {
+		playerCurrentForward = playerForward;
+	}
+	else {
+		float step = glm::min(playerLerpRate * dt, angle);
+		float sign = (glm::cross(playerCurrentForward, playerForward).y >= 0.0f) ? 1.0f : -1.0f;
+
+		// Rotate current forward around Y by 'step'
+		glm::mat4 rot = glm::rotate(glm::mat4(1.0f), step * sign, glm::vec3(0, 1, 0));
+		playerCurrentForward = glm::normalize(glm::vec3(rot * glm::vec4(playerCurrentForward, 0.0f)));
+	}
+	
 	playerCurrentRight = glm::normalize(glm::cross(playerCurrentForward, glm::vec3(0, 1, 0)));
 	playerCurrentUp = glm::normalize(glm::vec3(0, 1, 0));
 }
