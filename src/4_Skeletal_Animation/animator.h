@@ -103,6 +103,7 @@ public:
 		}
 
 		glm::mat4 globalTransformation = parentTransform * nodeTransform;
+		m_BoneGlobalTransform[nodeName] = globalTransformation;
 
 		auto boneInfoMap = m_CurrentAnimation->GetBoneIDMap();
 		if (boneInfoMap.find(nodeName) != boneInfoMap.end())
@@ -121,6 +122,13 @@ public:
 		return m_FinalBoneMatrices;
 	}
 
+	std::vector<std::string> GetAllNodeNames() {
+		const AssimpNodeData* node = &m_CurrentAnimation->GetRootNode();
+		std::vector<std::string> names;
+		getAllNodesNamesHelper(node, names);
+		return names;
+	}
+
 //private:
 	std::vector<glm::mat4> m_FinalBoneMatrices;
 	Animation* m_CurrentAnimation;
@@ -130,4 +138,12 @@ public:
 	float m_DeltaTime;
 	float m_blendAmount;
 
+	std::map<std::string, glm::mat4> m_BoneGlobalTransform;
+
+	private:
+	void getAllNodesNamesHelper(const AssimpNodeData* node, std::vector<std::string>& names) {
+		names.emplace_back(node->name);
+		for (int i = 0; i < node->childrenCount; i++)
+			getAllNodesNamesHelper(&node->children[i], names);
+	}
 };

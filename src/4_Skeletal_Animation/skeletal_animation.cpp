@@ -351,6 +351,8 @@ int main()
 
 	glm::mat4 groundToWorld = glm::scale(glm::mat4(1.0f), glm::vec3(50.0f, 1.0f, 50.0f));
 
+	glm::mat4 cubeToWorld = glm::mat4(1.0f);
+
 	//stbi_set_flip_vertically_on_load(true);
 
 	initSkybox();
@@ -366,6 +368,12 @@ int main()
 
 	// draw in wireframe
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+	//std::vector<std::string> animName = animator.GetAllNodeNames();
+	//for (std::string s : animName)
+	//	printf("%s\n", s.c_str());
+
+	std::string rightHandNodeName = "mixamorig_LeftHand";
 
 	// render loop
 	// -----------
@@ -475,7 +483,7 @@ int main()
 					printf("grab_idle \n");
 				}
 				else {
-					printf("grabing\n");
+					printf("grabbing\n");
 				}
 				break;
 			case IDLE_RUN:
@@ -617,6 +625,20 @@ int main()
 		playerModel.Draw(animShader);
 
 
+		modelShader.use();
+		modelShader.setVec3("color", glm::vec3(1, 0, 0));
+		glm::mat4 toHand = animator.m_BoneGlobalTransform.at(rightHandNodeName);
+		glm::vec3 handScale;
+		handScale.x = glm::length(glm::vec3(toHand[0]));
+		handScale.y = glm::length(glm::vec3(toHand[1]));
+		handScale.z = glm::length(glm::vec3(toHand[2]));
+		float cubeSize = 1.5f;
+		glm::vec3 cubeScale = glm::vec3(cubeSize) / handScale;
+		modelShader.setMat4("model", model * toHand * glm::translate(glm::mat4(1.0f), glm::vec3(0, 1, 0)) * glm::scale(glm::mat4(1.0f), cubeScale));
+		//modelShader.setMat4("model", glm::translate(glm::mat4(1.0f), glm::vec3(0,1,0)) * glm::scale(glm::mat4(1.0f), glm::vec3(cubeSize)));
+		
+		drawCube();
+
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		// -------------------------------------------------------------------------------
 		glfwSwapBuffers(window);
@@ -703,5 +725,5 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 // ----------------------------------------------------------------------
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-	//camera.ProcessMouseScroll(yoffset);
+	camera.ProcessMouseScroll(yoffset);
 }
