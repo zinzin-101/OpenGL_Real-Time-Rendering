@@ -40,7 +40,7 @@ struct SpotLight {
 
 in vec3 FragPos;
 in vec3 Normal;
-in vec2 TexCoords;
+//in vec2 TexCoords;
 
 uniform vec3 viewPos;
 uniform DirLight dirLight;
