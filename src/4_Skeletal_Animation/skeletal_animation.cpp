@@ -40,11 +40,14 @@ float lastFrame = 0.0f;
 
 enum AnimState {
 	IDLE = 1,
-	IDLE_PUNCH,
-	PUNCH_IDLE,
-	IDLE_KICK,
-	KICK_IDLE,
+	IDLE_GRAB,
+	GRAB_IDLE,
+	IDLE_RUN,
+	RUN_IDLE,
 	IDLE_WALK,
+	RUN,
+	RUN_WALK,
+	WALK_RUN,
 	WALK_IDLE,
 	WALK
 };
@@ -60,11 +63,20 @@ struct BoxCollider {
 	glm::vec3 size;
 };
 
-glm::vec3 playerPos = glm::vec3(0, 0, 0);
+enum class MovementState {
+	IDLE,
+	WALKING,
+	SPRINTING
+};
+MovementState currentMovementState = MovementState::IDLE;
+float walkSpeed = 5.0f;
+float sprintSpeed = walkSpeed * 4.0f;
+glm::vec3 playerPos = glm::vec3(0, 0.5f, 0);
+glm::vec3 lastPlayerPos = playerPos;
 glm::vec3 playerForward = glm::vec3(0, 0, 1);
 glm::vec3 playerRight = glm::vec3(1, 0, 0);
 glm::vec3 playerUp = glm::vec3(0, 1, 0);
-float playerLerpRate = 10.0f;
+float playerLerpRate = glm::radians(540.0f);
 glm::vec3 playerCurrentForward = playerForward;
 glm::vec3 playerCurrentRight = playerRight;
 glm::vec3 playerCurrentUp = playerUp;
@@ -219,14 +231,33 @@ glm::mat4 getPerspective() {
 	return glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
 }
 
-void handlePlayerLerp(float dt) {
-	glm::vec3 forward = (playerForward - playerCurrentForward) * playerLerpRate * dt;
-	glm::vec3 right = (playerRight - playerCurrentRight) * playerLerpRate * dt;
-	glm::vec3 up = (playerUp - playerCurrentUp) * playerLerpRate * dt;
+glm::vec3 rotateVector(glm::vec3 v, glm::vec3 axis, float deg) {
+	float angle = glm::radians(deg);
+	glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), angle, axis);
+	return rotMat * glm::vec4(v, 1.0f);
+}
 
-	playerCurrentForward = glm::normalize(playerCurrentForward + forward);
-	playerCurrentRight = glm::normalize(playerCurrentRight + right);
-	playerCurrentUp = glm::normalize(playerCurrentUp + up);
+glm::vec3 rotateTowards(glm::vec3 current, glm::vec3 target, float maxRadiansDelta) {
+	current = glm::normalize(current);
+	target = glm::normalize(target);
+
+	float cos = glm::dot(current, target);
+	cos = glm::clamp(cos, -1.0f, 1.0f);
+
+	float angle = glm::acos(cos);
+
+	if (angle < 1e-5f || angle <= maxRadiansDelta) return target;
+
+	glm::vec3 axis = glm::normalize(glm::cross(current, target));
+	glm::mat4 rot = glm::rotate(glm::mat4(1.0f), maxRadiansDelta, axis);
+
+	return glm::normalize(glm::vec3(rot * glm::vec4(current, 0.0f)));
+}
+
+void handlePlayerLerp(float dt) {
+	playerCurrentForward = rotateTowards(playerCurrentForward, playerForward, playerLerpRate * dt);
+	playerCurrentRight = glm::normalize(glm::cross(playerCurrentForward, glm::vec3(0, 1, 0)));
+	playerCurrentUp = glm::normalize(glm::vec3(0, 1, 0));
 }
 
 int main()
@@ -276,23 +307,24 @@ int main()
 
 	// build and compile shaders
 	// -------------------------
-	Shader ourShader("anim_model.vs", "anim_model.fs");
+	Shader animShader("anim_model.vs", "anim_model.fs");
 	Shader modelShader("model.vs", "model.fs");
 
 	
 	// load models
 	// -----------
 	// idle 3.3, walk 2.06, run 0.83, punch 1.03, kick 1.6
-	Model ourModel(FileSystem::getPath("resources/objects/mixamo/Knight D Pelegrini.dae"));
-	Animation idleAnimation(FileSystem::getPath("resources/objects/mixamo/WarriorIdle.dae"),&ourModel);
-	Animation walkAnimation(FileSystem::getPath("resources/objects/mixamo/Walking.dae"), &ourModel);
-	Animation runAnimation(FileSystem::getPath("resources/objects/mixamo/Running.dae"), &ourModel);
-	Animation punchAnimation(FileSystem::getPath("resources/objects/mixamo/Boxing.dae"), &ourModel);
-	Animation kickAnimation(FileSystem::getPath("resources/objects/mixamo/HurricaneKick.dae"), &ourModel);
+	Model playerModel(FileSystem::getPath("resources/objects/mixamo/Knight D Pelegrini.dae"));
+	Animation idleAnimation(FileSystem::getPath("resources/objects/mixamo/WarriorIdle.dae"),&playerModel);
+	Animation walkAnimation(FileSystem::getPath("resources/objects/mixamo/Walking.dae"), &playerModel);
+	Animation runAnimation(FileSystem::getPath("resources/objects/mixamo/Running.dae"), &playerModel);
+	Animation grabAnimation(FileSystem::getPath("resources/objects/mixamo/Grab.dae"), &playerModel);
+	Animation punchAnimation(FileSystem::getPath("resources/objects/mixamo/Boxing.dae"), &playerModel);
 	Animator animator(&idleAnimation);
 	enum AnimState charState = IDLE;
 	float blendAmount = 0.0f;
 	float blendRate = 0.055f;
+	//float blendRate = 0.8f;
 
 	//stbi_set_flip_vertically_on_load(false);
 
@@ -315,6 +347,7 @@ int main()
 	keyDown[GLFW_KEY_2] = false;
 	keyDown[GLFW_KEY_3] = false;
 	keyDown[GLFW_KEY_4] = false;
+	keyDown[GLFW_KEY_E] = false;
 
 	// draw in wireframe
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -342,26 +375,28 @@ int main()
 		if (keyDownHandler(GLFW_KEY_3, window, keyDown))
 			animator.PlayAnimation(&runAnimation, NULL, 0.0f, 0.0f, 0.0f);
 		if (keyDownHandler(GLFW_KEY_4, window, keyDown))
-			animator.PlayAnimation(&punchAnimation, NULL, 0.0f, 0.0f, 0.0f);
+			animator.PlayAnimation(&grabAnimation, NULL, 0.0f, 0.0f, 0.0f);
 		if (keyDownHandler(GLFW_KEY_5, window, keyDown))
-			animator.PlayAnimation(&kickAnimation, NULL, 0.0f, 0.0f, 0.0f);
+			animator.PlayAnimation(&punchAnimation, NULL, 0.0f, 0.0f, 0.0f);
 
-
+		//printf("playerspeed: %f\n", playerSpeed);
+		printf("current state %i\n", charState);
 		switch (charState) {
 			case IDLE:
-				if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+				if (currentMovementState == MovementState::WALKING) {
 					blendAmount = 0.0f;
 					animator.PlayAnimation(&idleAnimation, &walkAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
 					charState = IDLE_WALK;
-				} else if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS) {
+				} 
+				else if (keyDownHandler(GLFW_KEY_E, window, keyDown)) {
 					blendAmount = 0.0f;
-					animator.PlayAnimation(&idleAnimation, &punchAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
-					charState = IDLE_PUNCH;
+					animator.PlayAnimation(&idleAnimation, &grabAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
+					charState = IDLE_GRAB;
 				}
-				else if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS) {
+				else if (currentMovementState == MovementState::SPRINTING) {
 					blendAmount = 0.0f;
-					animator.PlayAnimation(&idleAnimation, &kickAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
-					charState = IDLE_KICK;
+					animator.PlayAnimation(&idleAnimation, &runAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
+					charState = IDLE_RUN;
 				}
 				printf("idle \n");
 				break;
@@ -379,9 +414,12 @@ int main()
 				break;
 			case WALK:
 				animator.PlayAnimation(&walkAnimation, NULL, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
-				if (glfwGetKey(window, GLFW_KEY_UP) != GLFW_PRESS) {
-					charState = WALK_IDLE;
+				if (currentMovementState == MovementState::SPRINTING) {
+					charState = WALK_RUN;
 				} 
+				else if (currentMovementState == MovementState::IDLE) {
+					charState = WALK_IDLE;
+				}
 				printf("walking\n");
 				break;
 			case WALK_IDLE:
@@ -396,72 +434,115 @@ int main()
 				}
 				printf("walk_idle \n");
 				break;
-			case IDLE_PUNCH:
+			case IDLE_GRAB:
 				blendAmount += blendRate;
 				blendAmount = fmod(blendAmount, 1.0f);
-				animator.PlayAnimation(&idleAnimation, &punchAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
-				if (blendAmount > 0.9f) {
+				animator.PlayAnimation(&idleAnimation, &grabAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
+				if (blendAmount > 0.99f) {
 					blendAmount = 0.0f;
 					float startTime = animator.m_CurrentTime2;
-					animator.PlayAnimation(&punchAnimation, NULL, startTime, 0.0f, blendAmount);
-					charState = PUNCH_IDLE;
+					animator.PlayAnimation(&grabAnimation, NULL, startTime, 0.0f, blendAmount);
+					charState = GRAB_IDLE;
 				}
 				printf("idle_punch\n");
 				break;
-			case PUNCH_IDLE:
-				if (animator.m_CurrentTime > 0.7f) {
+			case GRAB_IDLE:
+				if (animator.m_CurrentTime > 0.99f) {
 					blendAmount += blendRate;
 					blendAmount = fmod(blendAmount, 1.0f);
-					animator.PlayAnimation(&punchAnimation, &idleAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
+					animator.PlayAnimation(&grabAnimation, &idleAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
 					if (blendAmount > 0.9f) {
 						blendAmount = 0.0f;
 						float startTime = animator.m_CurrentTime2;
 						animator.PlayAnimation(&idleAnimation, NULL, startTime, 0.0f, blendAmount);
 						charState = IDLE;
 					}
-					printf("punch_idle \n");
+					printf("grab_idle \n");
 				}
 				else {
-					// punching
-					printf("punching \n");
+					printf("grabing\n");
 				}
 				break;
-			case IDLE_KICK:
+			case IDLE_RUN:
 				blendAmount += blendRate;
 				blendAmount = fmod(blendAmount, 1.0f);
-				animator.PlayAnimation(&idleAnimation, &kickAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
+				animator.PlayAnimation(&idleAnimation, &runAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
 				if (blendAmount > 0.9f) {
 					blendAmount = 0.0f;
 					float startTime = animator.m_CurrentTime2;
-					animator.PlayAnimation(&kickAnimation, NULL, startTime, 0.0f, blendAmount);
-					charState = KICK_IDLE;
+					animator.PlayAnimation(&runAnimation, NULL, startTime, 0.0f, blendAmount);
+					charState = RUN;
 				}
-				printf("idle_kick\n");
+				printf("idle_run\n");
 				break;
-			case KICK_IDLE:
+			case RUN:
+				animator.PlayAnimation(&runAnimation, NULL, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
+				if (currentMovementState == MovementState::WALKING) {
+					charState = RUN_WALK;
+				}
+				else if (currentMovementState == MovementState::IDLE) {
+					charState = RUN_IDLE;
+				}
+				break;
+
+			case RUN_WALK:
+				blendAmount += blendRate;
+				blendAmount = fmod(blendAmount, 1.0f);
 				if (animator.m_CurrentTime > 1.0f) {
 					blendAmount += blendRate;
 					blendAmount = fmod(blendAmount, 1.0f);
-					animator.PlayAnimation(&kickAnimation, &idleAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
-					if (blendAmount > 0.9f) {
+					animator.PlayAnimation(&runAnimation, &walkAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
+					if (blendAmount > 0.5f) {
+						blendAmount = 0.0f;
+						float startTime = animator.m_CurrentTime2;
+						animator.PlayAnimation(&walkAnimation, NULL, startTime, 0.0f, blendAmount);
+						charState = WALK;
+					}
+					printf("run_idle \n");
+				}
+				break;
+
+			case WALK_RUN:
+				blendAmount += blendRate;
+				blendAmount = fmod(blendAmount, 1.0f);
+				if (animator.m_CurrentTime > 1.0f) {
+					blendAmount += blendRate;
+					blendAmount = fmod(blendAmount, 1.0f);
+					animator.PlayAnimation(&walkAnimation, &runAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
+					if (blendAmount > 0.5f) {
+						blendAmount = 0.0f;
+						float startTime = animator.m_CurrentTime2;
+						animator.PlayAnimation(&runAnimation, NULL, startTime, 0.0f, blendAmount);
+						charState = RUN;
+					}
+					printf("walk_run \n");
+				}
+				break;
+
+			case RUN_IDLE:
+				blendAmount += blendRate;
+				blendAmount = fmod(blendAmount, 1.0f);
+				if (animator.m_CurrentTime > 1.0f) {
+					blendAmount += blendRate;
+					blendAmount = fmod(blendAmount, 1.0f);
+					animator.PlayAnimation(&runAnimation, &idleAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
+					if (blendAmount > 0.5f) {
 						blendAmount = 0.0f;
 						float startTime = animator.m_CurrentTime2;
 						animator.PlayAnimation(&idleAnimation, NULL, startTime, 0.0f, blendAmount);
 						charState = IDLE;
 					}
-					printf("kick_idle \n");
+					printf("run_idle \n");
 				}
-				else {
-					// punching
-					printf("kicking \n");
-				}
+
 				break;
 		}
 
-
-
 		animator.UpdateAnimation(deltaTime);
 		
+		// player position update
+		lastPlayerPos = playerPos;
+
 		// camera
 		camera.Position = playerPos - (glm::normalize(camera.Forward) * camFollowDistance) + (glm::normalize(camera.Up) * camHeight);
 
@@ -506,17 +587,17 @@ int main()
 		drawCube();
 
 		// don't forget to enable shader before setting uniforms
-		ourShader.use();
+		animShader.use();
 
 		// view/projection transformations
 		glm::mat4 projection = getPerspective();
 		glm::mat4 view = camera.GetViewMatrix();
-		ourShader.setMat4("projection", projection);
-		ourShader.setMat4("view", view);
+		animShader.setMat4("projection", projection);
+		animShader.setMat4("view", view);
 
         auto transforms = animator.GetFinalBoneMatrices();
 		for (int i = 0; i < transforms.size(); ++i)
-			ourShader.setMat4("finalBonesMatrices[" + std::to_string(i) + "]", transforms[i]);
+			animShader.setMat4("finalBonesMatrices[" + std::to_string(i) + "]", transforms[i]);
 
 
 		// render the loaded model
@@ -529,8 +610,8 @@ int main()
 			glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
 		);
 		model = glm::translate(glm::mat4(1.0f), playerPos) * rotMat * model;
-		ourShader.setMat4("model", model);
-		ourModel.Draw(ourShader);
+		animShader.setMat4("model", model);
+		playerModel.Draw(animShader);
 
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -566,19 +647,23 @@ void processInput(GLFWwindow* window)
 		movement += glm::vec3(0, 1, 0);
 	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
 		movement += glm::vec3(0, -1, 0);
+	movement = glm::normalize(movement);
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-		movement *= 20.0f;
-
+		currentMovementState = MovementState::SPRINTING;
+	else
+		currentMovementState = MovementState::WALKING;
 	//camera.ProcessKeyboard(movement * camera.MovementSpeed, deltaTime);
 
 	if (glm::length(movement) > 0.0f) {
-		glm::vec3 forward = camera.Forward;
+		glm::vec3 forward = camera.Forward * movement.z + camera.Right * movement.x;
 		forward.y = 0.0f;
 		forward = glm::normalize(forward);
 		playerForward = forward;
-		playerRight = glm::cross(forward, glm::vec3(0,-1,0));
-		playerPos += movement.z * forward * camera.MovementSpeed * deltaTime;
-		playerPos += movement.x * camera.Right * camera.MovementSpeed * deltaTime;
+		playerRight = glm::cross(forward, glm::vec3(0,1,0));
+		playerPos += (currentMovementState == MovementState::WALKING ? walkSpeed : sprintSpeed) * forward * deltaTime;
+	}
+	else {
+		currentMovementState = MovementState::IDLE;
 	}
 
 }
