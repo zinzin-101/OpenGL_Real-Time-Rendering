@@ -30,6 +30,8 @@ Camera camera(glm::vec3(0.0f, 5.0f, 3.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
+float camFollowDistance = 5.0f;
+float camHeight = 1.0f;
 
 // timing
 float deltaTime = 0.0f;
@@ -49,6 +51,11 @@ enum AnimState {
 unsigned int cubeMapTexture;
 GLuint skyboxVAO, skyboxVBO, skyboxEBO;
 GLuint cubeVAO, cubeVBO, cubeEBO;
+
+glm::vec3 playerPos = glm::vec3(0, 0, 0);
+glm::vec3 playerForward = glm::vec3(0, 0, 1);
+glm::vec3 playerRight = glm::vec3(1, 0, 0);
+glm::vec3 playerUp = glm::vec3(0, 1, 0);
 
 void initCube() {
 	// bind VAO
@@ -415,6 +422,9 @@ int main()
 
 		animator.UpdateAnimation(deltaTime);
 		
+		// camera
+		camera.Position = playerPos - (glm::normalize(camera.Forward) * camFollowDistance) + (glm::normalize(camera.Up) * camHeight);
+
 		// render
 		// ------
 		glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
@@ -468,8 +478,9 @@ int main()
 
 		// render the loaded model
 		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(0.0f, 0.6f, 0.0f)); // translate it down so it's at the center of the scene
 		model = glm::scale(model, glm::vec3(1.f, 1.f, 1.f));	// it's a bit too big for our scene, so scale it down
+		glm::mat4 rotMat; // add rotation matrix
+		model = glm::translate(glm::mat4(1.0f), playerPos) * rotMat * model;
 		ourShader.setMat4("model", model);
 		ourModel.Draw(ourShader);
 
@@ -510,7 +521,9 @@ void processInput(GLFWwindow* window)
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 		movement *= 20.0f;
 
-	camera.ProcessKeyboard(movement * camera.MovementSpeed, deltaTime);
+	//camera.ProcessKeyboard(movement * camera.MovementSpeed, deltaTime);
+	playerPos += movement.z * camera.Forward * camera.MovementSpeed * deltaTime;
+	playerPos += movement.x * camera.Right * camera.MovementSpeed * deltaTime;
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -546,5 +559,5 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 // ----------------------------------------------------------------------
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-	camera.ProcessMouseScroll(yoffset);
+	//camera.ProcessMouseScroll(yoffset);
 }
