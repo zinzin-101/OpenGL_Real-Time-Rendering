@@ -256,7 +256,7 @@ int main()
 
 	//stbi_set_flip_vertically_on_load(false);
 
-	Model boatModel(FileSystem::getPath("resources/objects/boat/boat.dae"));
+	//Model boatModel(FileSystem::getPath("resources/objects/boat/boat.dae"));
 	glm::mat4 boatToWorld =
 		glm::translate(glm::mat4(1.0f), glm::vec3(0,0,22)) *
 		glm::scale(glm::mat4(1.0f), glm::vec3(0.015f)) *
@@ -458,7 +458,7 @@ int main()
 		modelShader.setFloat("pointLights[0].linear", 0.00009f);
 		modelShader.setFloat("pointLights[0].quadratic", 0.000032f);
 
-		boatModel.Draw(modelShader);
+		//boatModel.Draw(modelShader);
 		modelShader.setMat4("model", glm::mat4(1.0f) * groundToWorld);
 		drawCube();
 
@@ -479,7 +479,12 @@ int main()
 		// render the loaded model
 		glm::mat4 model = glm::mat4(1.0f);
 		model = glm::scale(model, glm::vec3(1.f, 1.f, 1.f));	// it's a bit too big for our scene, so scale it down
-		glm::mat4 rotMat; // add rotation matrix
+		glm::mat4 rotMat(
+			glm::vec4(playerRight, 0.0f),
+			glm::vec4(playerUp, 0.0f),
+			glm::vec4(playerForward, 0.0f),
+			glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
+		);
 		model = glm::translate(glm::mat4(1.0f), playerPos) * rotMat * model;
 		ourShader.setMat4("model", model);
 		ourModel.Draw(ourShader);
@@ -522,8 +527,16 @@ void processInput(GLFWwindow* window)
 		movement *= 20.0f;
 
 	//camera.ProcessKeyboard(movement * camera.MovementSpeed, deltaTime);
-	playerPos += movement.z * camera.Forward * camera.MovementSpeed * deltaTime;
-	playerPos += movement.x * camera.Right * camera.MovementSpeed * deltaTime;
+
+	if (glm::length(movement) > 0.0f) {
+		glm::vec3 forward = glm::normalize(camera.Forward);
+		playerForward = forward;
+		playerRight = glm::cross(forward, glm::vec3(0,-1,0));
+		forward.y = 0.0f;
+		playerPos += movement.z * forward * camera.MovementSpeed * deltaTime;
+		playerPos += movement.x * camera.Right * camera.MovementSpeed * deltaTime;
+	}
+
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
