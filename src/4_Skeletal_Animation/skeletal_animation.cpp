@@ -262,7 +262,8 @@ void handlePlayerLerp(float dt) {
 		playerCurrentForward = playerForward;
 	}
 	else {
-		float step = glm::min(playerLerpRate * dt, angle);
+		float rate = playerLerpRate * (currentMovementState == MovementState::SPRINTING ? 1.5f : 1.0f) * dt;
+		float step = glm::min(rate, angle);
 		float sign = (glm::cross(playerCurrentForward, playerForward).y >= 0.0f) ? 1.0f : -1.0f;
 
 		// Rotate current forward around Y by 'step'
@@ -394,7 +395,7 @@ int main()
 			animator.PlayAnimation(&punchAnimation, NULL, 0.0f, 0.0f, 0.0f);
 
 		//printf("playerspeed: %f\n", playerSpeed);
-		printf("current state %i\n", charState);
+		//printf("current state %i\n", charState);
 		switch (charState) {
 			case IDLE:
 				if (currentMovementState == MovementState::WALKING) {
@@ -452,16 +453,16 @@ int main()
 				blendAmount += blendRate;
 				blendAmount = fmod(blendAmount, 1.0f);
 				animator.PlayAnimation(&idleAnimation, &grabAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
-				if (blendAmount > 0.99f) {
+				if (blendAmount > 0.9f) {
 					blendAmount = 0.0f;
 					float startTime = animator.m_CurrentTime2;
 					animator.PlayAnimation(&grabAnimation, NULL, startTime, 0.0f, blendAmount);
 					charState = GRAB_IDLE;
 				}
-				printf("idle_punch\n");
+				printf("idle_grab\n");
 				break;
 			case GRAB_IDLE:
-				if (animator.m_CurrentTime > 0.99f) {
+				if (animator.m_CurrentTime > 2.5f) {
 					blendAmount += blendRate;
 					blendAmount = fmod(blendAmount, 1.0f);
 					animator.PlayAnimation(&grabAnimation, &idleAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
@@ -502,52 +503,40 @@ int main()
 			case RUN_WALK:
 				blendAmount += blendRate;
 				blendAmount = fmod(blendAmount, 1.0f);
-				if (animator.m_CurrentTime > 1.0f) {
-					blendAmount += blendRate;
-					blendAmount = fmod(blendAmount, 1.0f);
-					animator.PlayAnimation(&runAnimation, &walkAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
-					if (blendAmount > 0.5f) {
-						blendAmount = 0.0f;
-						float startTime = animator.m_CurrentTime2;
-						animator.PlayAnimation(&walkAnimation, NULL, startTime, 0.0f, blendAmount);
-						charState = WALK;
-					}
-					printf("run_idle \n");
+				animator.PlayAnimation(&runAnimation, &walkAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
+				if (blendAmount > 0.9f) {
+					blendAmount = 0.0f;
+					float startTime = animator.m_CurrentTime2;
+					animator.PlayAnimation(&walkAnimation, NULL, startTime, 0.0f, blendAmount);
+					charState = WALK;
 				}
+				printf("run_idle \n");
 				break;
 
 			case WALK_RUN:
 				blendAmount += blendRate;
 				blendAmount = fmod(blendAmount, 1.0f);
-				if (animator.m_CurrentTime > 1.0f) {
-					blendAmount += blendRate;
-					blendAmount = fmod(blendAmount, 1.0f);
-					animator.PlayAnimation(&walkAnimation, &runAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
-					if (blendAmount > 0.5f) {
-						blendAmount = 0.0f;
-						float startTime = animator.m_CurrentTime2;
-						animator.PlayAnimation(&runAnimation, NULL, startTime, 0.0f, blendAmount);
-						charState = RUN;
-					}
-					printf("walk_run \n");
+				animator.PlayAnimation(&walkAnimation, &runAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
+				if (blendAmount > 0.9f) {
+					blendAmount = 0.0f;
+					float startTime = animator.m_CurrentTime2;
+					animator.PlayAnimation(&runAnimation, NULL, startTime, 0.0f, blendAmount);
+					charState = RUN;
 				}
+				printf("walk_run \n");
 				break;
 
 			case RUN_IDLE:
 				blendAmount += blendRate;
 				blendAmount = fmod(blendAmount, 1.0f);
-				if (animator.m_CurrentTime > 1.0f) {
-					blendAmount += blendRate;
-					blendAmount = fmod(blendAmount, 1.0f);
-					animator.PlayAnimation(&runAnimation, &idleAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
-					if (blendAmount > 0.5f) {
-						blendAmount = 0.0f;
-						float startTime = animator.m_CurrentTime2;
-						animator.PlayAnimation(&idleAnimation, NULL, startTime, 0.0f, blendAmount);
-						charState = IDLE;
-					}
-					printf("run_idle \n");
+				animator.PlayAnimation(&runAnimation, &idleAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
+				if (blendAmount > 0.9f) {
+					blendAmount = 0.0f;
+					float startTime = animator.m_CurrentTime2;
+					animator.PlayAnimation(&idleAnimation, NULL, startTime, 0.0f, blendAmount);
+					charState = IDLE;
 				}
+				printf("run_idle \n");
 
 				break;
 		}
@@ -657,18 +646,17 @@ void processInput(GLFWwindow* window)
 		movement += glm::vec3(-1, 0, 0);
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		movement += glm::vec3(1, 0, 0);
-	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-		movement += glm::vec3(0, 1, 0);
-	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-		movement += glm::vec3(0, -1, 0);
-	movement = glm::normalize(movement);
-	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-		currentMovementState = MovementState::SPRINTING;
-	else
-		currentMovementState = MovementState::WALKING;
+	//if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+	//	movement += glm::vec3(0, 1, 0);
+	//if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+	//	movement += glm::vec3(0, -1, 0);
 	//camera.ProcessKeyboard(movement * camera.MovementSpeed, deltaTime);
 
 	if (glm::length(movement) > 0.0f) {
+		movement = glm::normalize(movement);
+		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) currentMovementState = MovementState::SPRINTING;
+		else currentMovementState = MovementState::WALKING;
+
 		glm::vec3 forward = camera.Forward * movement.z + camera.Right * movement.x;
 		forward.y = 0.0f;
 		forward = glm::normalize(forward);
