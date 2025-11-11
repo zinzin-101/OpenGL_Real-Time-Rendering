@@ -51,11 +51,23 @@ enum AnimState {
 unsigned int cubeMapTexture;
 GLuint skyboxVAO, skyboxVBO, skyboxEBO;
 GLuint cubeVAO, cubeVBO, cubeEBO;
+GLuint outlineVAO, outlineVBO, outlineEBO;
+
+struct BoxCollider {
+	BoxCollider() : ownerPosition(nullptr), offset(0.0f), size(1.0f) {}
+	glm::vec3* ownerPosition;
+	glm::vec3 offset;
+	glm::vec3 size;
+};
 
 glm::vec3 playerPos = glm::vec3(0, 0, 0);
 glm::vec3 playerForward = glm::vec3(0, 0, 1);
 glm::vec3 playerRight = glm::vec3(1, 0, 0);
 glm::vec3 playerUp = glm::vec3(0, 1, 0);
+float playerLerpRate = 10.0f;
+glm::vec3 playerCurrentForward = playerForward;
+glm::vec3 playerCurrentRight = playerRight;
+glm::vec3 playerCurrentUp = playerUp;
 
 void initCube() {
 	// bind VAO
@@ -89,6 +101,24 @@ void initCube() {
 		SKYBOX_INDICES,
 		GL_STATIC_DRAW
 	);
+}
+
+void initColliderOutline() {
+	glGenVertexArrays(1, &outlineVAO);
+	glGenBuffers(1, &outlineVBO);
+	glGenBuffers(1, &outlineEBO);
+
+	glBindVertexArray(outlineVAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, outlineVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(CUBE_OUTLINE_VERTICES), CUBE_OUTLINE_VERTICES, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, outlineEBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(CUBE_INDICES), CUBE_INDICES, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	glBindVertexArray(0);
 }
 
 void drawCube() {
@@ -187,6 +217,16 @@ bool keyDownHandler(unsigned int key, GLFWwindow* window, std::map<unsigned int,
 
 glm::mat4 getPerspective() {
 	return glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
+}
+
+void handlePlayerLerp(float dt) {
+	glm::vec3 forward = (playerForward - playerCurrentForward) * playerLerpRate * dt;
+	glm::vec3 right = (playerRight - playerCurrentRight) * playerLerpRate * dt;
+	glm::vec3 up = (playerUp - playerCurrentUp) * playerLerpRate * dt;
+
+	playerCurrentForward = glm::normalize(playerCurrentForward + forward);
+	playerCurrentRight = glm::normalize(playerCurrentRight + right);
+	playerCurrentUp = glm::normalize(playerCurrentUp + up);
 }
 
 int main()
@@ -425,6 +465,9 @@ int main()
 		// camera
 		camera.Position = playerPos - (glm::normalize(camera.Forward) * camFollowDistance) + (glm::normalize(camera.Up) * camHeight);
 
+		// player lerp
+		handlePlayerLerp(deltaTime);
+
 		// render
 		// ------
 		glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
@@ -480,9 +523,9 @@ int main()
 		glm::mat4 model = glm::mat4(1.0f);
 		model = glm::scale(model, glm::vec3(1.f, 1.f, 1.f));	// it's a bit too big for our scene, so scale it down
 		glm::mat4 rotMat(
-			glm::vec4(playerRight, 0.0f),
-			glm::vec4(playerUp, 0.0f),
-			glm::vec4(playerForward, 0.0f),
+			glm::vec4(playerCurrentRight, 0.0f),
+			glm::vec4(playerCurrentUp, 0.0f),
+			glm::vec4(playerCurrentForward, 0.0f),
 			glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
 		);
 		model = glm::translate(glm::mat4(1.0f), playerPos) * rotMat * model;
@@ -529,10 +572,11 @@ void processInput(GLFWwindow* window)
 	//camera.ProcessKeyboard(movement * camera.MovementSpeed, deltaTime);
 
 	if (glm::length(movement) > 0.0f) {
-		glm::vec3 forward = glm::normalize(camera.Forward);
+		glm::vec3 forward = camera.Forward;
+		forward.y = 0.0f;
+		forward = glm::normalize(forward);
 		playerForward = forward;
 		playerRight = glm::cross(forward, glm::vec3(0,-1,0));
-		forward.y = 0.0f;
 		playerPos += movement.z * forward * camera.MovementSpeed * deltaTime;
 		playerPos += movement.x * camera.Right * camera.MovementSpeed * deltaTime;
 	}

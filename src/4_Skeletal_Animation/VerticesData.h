@@ -57,3 +57,14 @@ const unsigned int CUBE_INDICES[] = {
 	// vertical edges
 	0, 4, 1, 5, 2, 6, 3, 7
 };
+
+const float CUBE_OUTLINE_VERTICES[] = {
+	-0.5f, -0.5f, -0.5f, // 0
+	 0.5f, -0.5f, -0.5f, // 1
+	 0.5f,  0.5f, -0.5f, // 2
+	-0.5f,  0.5f, -0.5f, // 3
+	-0.5f, -0.5f,  0.5f, // 4
+	 0.5f, -0.5f,  0.5f, // 5
+	 0.5f,  0.5f,  0.5f, // 6
+	-0.5f,  0.5f,  0.5f  // 7
+};
