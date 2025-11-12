@@ -49,7 +49,17 @@ enum AnimState {
 	RUN_WALK,
 	WALK_RUN,
 	WALK_IDLE,
-	WALK
+	WALK,
+	IDLE_SHEATH,
+	SHEATH_IDLE,
+	IDLE_SLASH,
+	SLASH_IDLE,
+	IDLE_PUNCH,
+	PUNCH_IDLE,
+	WALK_PUNCH,
+	RUN_PUNCH,
+	WALK_SLASH,
+	RUN_SLASH
 };
 unsigned int cubeMapTexture;
 GLuint skyboxVAO, skyboxVBO, skyboxEBO;
@@ -60,6 +70,12 @@ enum class MovementState {
 	IDLE,
 	WALKING,
 	SPRINTING
+};
+
+enum class SwordState {
+	NONE,
+	HOLDING,
+	SHEATHED
 };
 
 // player
@@ -77,11 +93,14 @@ glm::vec3 playerCurrentForward = playerForward;
 glm::vec3 playerCurrentRight = playerRight;
 glm::vec3 playerCurrentUp = playerUp;
 bool isSwordInHand = false;
-glm::vec3 swordPos = glm::vec3(0, 0.5f, 2);
+SwordState swordState = SwordState::NONE;
+glm::vec3 swordPos = glm::vec3(0, 0.25f, 2);
+bool isHelmetOnHead = false;
+glm::vec3 helmetPos = glm::vec3(0, 1.0f, 4);
 
 float grabCheckDistance = 1.5f;
 std::vector<glm::vec3*> grabbablePos;
-std::map<glm::vec3*, bool*> posToHandState;
+std::map<glm::vec3*, bool*> posToEquipState;
 
 void initCube() {
 	// bind VAO
@@ -276,23 +295,22 @@ void handlePlayerLerp(float dt) {
 	playerCurrentUp = glm::normalize(glm::vec3(0, 1, 0));
 }
 
-void handleDroppingSword() {
+void handleDroppingItem(glm::vec3* itemPos, bool* isItemEquipped) {
 	glm::vec3 newPos = playerPos;
 	newPos += playerCurrentForward * 1.0f;
-	newPos.y = 0.0f;
-	swordPos = newPos;
-	isSwordInHand = false;
+	newPos.y = 0.5f;
+	*itemPos = newPos;
+	*isItemEquipped = false;
+
+	if (itemPos == &swordPos) swordState = SwordState::NONE;
 }
 
 void handleGrabbing() {
-	if (isSwordInHand) {
-		handleDroppingSword();
-		return;
-	}
-
 	glm::vec3* grabbable = nullptr;
 	float minDistance = -1.0f;
 	for (glm::vec3* objPos : grabbablePos) {
+		if (*posToEquipState.at(objPos)) continue;
+
 		float distance = glm::length(*objPos - playerPos);
 		if (distance < grabCheckDistance) {
 			if (minDistance < 0 || distance < minDistance) {
@@ -302,7 +320,20 @@ void handleGrabbing() {
 		}
 	}
 
-	if (grabbable != nullptr) *posToHandState.at(grabbable) = true;
+	if (grabbable != nullptr) {
+		*posToEquipState.at(grabbable) = true;
+		if (grabbable == &swordPos) swordState = SwordState::HOLDING;
+		return;
+	}
+
+	for (glm::vec3* objPos : grabbablePos) {
+		bool* state = posToEquipState.at(objPos);
+		if (*state) {
+			if (objPos == &swordPos && swordState == SwordState::SHEATHED) continue;
+			handleDroppingItem(objPos, state);
+			return;
+		}
+	}
 }
 
 int main()
@@ -367,6 +398,8 @@ int main()
 	Animation runAnimation(FileSystem::getPath("resources/objects/mixamo/Running.dae"), &playerModel);
 	Animation grabAnimation(FileSystem::getPath("resources/objects/mixamo/Grab.dae"), &playerModel);
 	Animation punchAnimation(FileSystem::getPath("resources/objects/mixamo/Boxing.dae"), &playerModel);
+	Animation sheathAnimation(FileSystem::getPath("resources/objects/mixamo/Sheath.dae"), &playerModel);
+	Animation slashAnimation(FileSystem::getPath("resources/objects/mixamo/Slash.dae"), &playerModel);
 	Animator animator(&idleAnimation);
 	charState = IDLE;
 	float blendAmount = 0.0f;
@@ -398,12 +431,18 @@ int main()
 		glm::rotate(glm::mat4(1.0), glm::radians(90.0f), glm::vec3(0, 0, 1)) *
 		glm::translate(glm::mat4(1.0f), glm::vec3(0, 70, 0));
 
-	float helmetSize = 0.5f;
+	float helmetSize = 0.35f;
 	glm::mat4 helmetToWorld =
 		glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
 
+	glm::mat4 helmetHeadOffset =
+		glm::translate(glm::mat4(1.0f), glm::vec3(0, -15, 0));
+
 	grabbablePos.emplace_back(&swordPos);
-	posToHandState[&swordPos] = &isSwordInHand;
+	grabbablePos.emplace_back(&helmetPos);
+
+	posToEquipState[&swordPos] = &isSwordInHand;
+	posToEquipState[&helmetPos] = &isHelmetOnHead;
 
 	//stbi_set_flip_vertically_on_load(true);
 
@@ -416,14 +455,18 @@ int main()
 	keyDown[GLFW_KEY_2] = false;
 	keyDown[GLFW_KEY_3] = false;
 	keyDown[GLFW_KEY_4] = false;
+	keyDown[GLFW_KEY_5] = false;
+	keyDown[GLFW_KEY_6] = false;
+	keyDown[GLFW_KEY_7] = false;
 	keyDown[GLFW_KEY_E] = false;
+	keyDown[GLFW_KEY_F] = false;
 
 	// draw in wireframe
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-	//std::vector<std::string> animName = animator.GetAllNodeNames();
-	//for (std::string s : animName)
-	//	printf("%s\n", s.c_str());
+	std::vector<std::string> animName = animator.GetAllNodeNames();
+	for (std::string s : animName)
+		printf("%s\n", s.c_str());
 
 	std::string rightHandNodeName = "mixamorig_LeftHand";
 	//std::string headNodeName = "mixamorig_Head";
@@ -457,34 +500,57 @@ int main()
 			animator.PlayAnimation(&grabAnimation, NULL, 0.0f, 0.0f, 0.0f);
 		if (keyDownHandler(GLFW_KEY_5, window, keyDown))
 			animator.PlayAnimation(&punchAnimation, NULL, 0.0f, 0.0f, 0.0f);
+		if (keyDownHandler(GLFW_KEY_6, window, keyDown))
+			animator.PlayAnimation(&slashAnimation, NULL, 0.0f, 0.0f, 0.0f);
+		if (keyDownHandler(GLFW_KEY_7, window, keyDown))
+			animator.PlayAnimation(&sheathAnimation, NULL, 0.0f, 0.0f, 0.0f);
 
 		//if (keyDownHandler(GLFW_KEY_F, window, keyDown)) {
-		//	if (isSwordInHand) handleDroppingSword();
-		//	isSwordInHand = !isSwordInHand;
+		//	// if (isSwordInHand) handleDroppingSword();
+		//	isHelmetOnHead = !isHelmetOnHead;
 		//}
 
 		//printf("playerspeed: %f\n", playerSpeed);
 		//printf("current state %i\n", charState);
+		//printf("sword state %i\n", swordState);
+
+		bool isPressingE = keyDownHandler(GLFW_KEY_E, window, keyDown);
+		bool isPressingF = keyDownHandler(GLFW_KEY_F, window, keyDown);
 
 		switch (charState) {
 			case IDLE:
 				canGrab = true;
 
-				if (currentMovementState == MovementState::WALKING) {
-					blendAmount = 0.0f;
-					animator.PlayAnimation(&idleAnimation, &walkAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
-					charState = IDLE_WALK;
-				} 
-				else if (keyDownHandler(GLFW_KEY_E, window, keyDown)) {
-					blendAmount = 0.0f;
-					animator.PlayAnimation(&idleAnimation, &grabAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
-					charState = IDLE_GRAB;
+				if (isPressingE || isPressingF) {
+					if (isPressingE) {
+						blendAmount = 0.0f;
+						animator.PlayAnimation(&idleAnimation, &grabAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
+						charState = IDLE_GRAB;
+					}
+					if (isPressingF && swordState == SwordState::HOLDING) {
+						blendAmount = 0.0f;
+						animator.PlayAnimation(&idleAnimation, &slashAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
+						charState = IDLE_SLASH;
+					}
+					if (isPressingF && swordState == SwordState::NONE) {
+						blendAmount = 0.0f;
+						animator.PlayAnimation(&idleAnimation, &punchAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
+						charState = IDLE_PUNCH;
+					}
 				}
-				else if (currentMovementState == MovementState::SPRINTING) {
-					blendAmount = 0.0f;
-					animator.PlayAnimation(&idleAnimation, &runAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
-					charState = IDLE_RUN;
+				else {
+					if (currentMovementState == MovementState::WALKING) {
+						blendAmount = 0.0f;
+						animator.PlayAnimation(&idleAnimation, &walkAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
+						charState = IDLE_WALK;
+					}
+					if (currentMovementState == MovementState::SPRINTING) {
+						blendAmount = 0.0f;
+						animator.PlayAnimation(&idleAnimation, &runAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
+						charState = IDLE_RUN;
+					}
 				}
+
 				//printf("idle \n");
 				break;
 			case IDLE_WALK:
@@ -615,6 +681,54 @@ int main()
 				//printf("run_idle \n");
 
 				break;
+			case IDLE_PUNCH:
+				blendAmount += blendRate;
+				blendAmount = fmod(blendAmount, 1.0f);
+				animator.PlayAnimation(&idleAnimation, &punchAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
+				if (blendAmount > 0.9f) {
+					blendAmount = 0.0f;
+					float startTime = animator.m_CurrentTime2;
+					animator.PlayAnimation(&punchAnimation, NULL, startTime, 0.0f, blendAmount);
+					charState = PUNCH_IDLE;
+				}
+				break;
+			case PUNCH_IDLE:
+				if (animator.m_CurrentTime > 1.0f) {
+					blendAmount += blendRate;
+					blendAmount = fmod(blendAmount, 1.0f);
+					animator.PlayAnimation(&punchAnimation, &idleAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
+					if (blendAmount > 0.9f) {
+						blendAmount = 0.0f;
+						float startTime = animator.m_CurrentTime2;
+						animator.PlayAnimation(&idleAnimation, NULL, startTime, 0.0f, blendAmount);
+						charState = IDLE;
+					}
+				}
+				break;
+			case IDLE_SLASH:
+				blendAmount += blendRate;
+				blendAmount = fmod(blendAmount, 1.0f);
+				animator.PlayAnimation(&idleAnimation, &slashAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
+				if (blendAmount > 0.9f) {
+					blendAmount = 0.0f;
+					float startTime = animator.m_CurrentTime2;
+					animator.PlayAnimation(&slashAnimation, NULL, startTime, 0.0f, blendAmount);
+					charState = SLASH_IDLE;
+				}
+				break;
+			case SLASH_IDLE:
+				if (animator.m_CurrentTime > 1.0f) {
+					blendAmount += blendRate;
+					blendAmount = fmod(blendAmount, 1.0f);
+					animator.PlayAnimation(&slashAnimation, &idleAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
+					if (blendAmount > 0.9f) {
+						blendAmount = 0.0f;
+						float startTime = animator.m_CurrentTime2;
+						animator.PlayAnimation(&idleAnimation, NULL, startTime, 0.0f, blendAmount);
+						charState = IDLE;
+					}
+				}
+				break;
 		}
 
 		animator.UpdateAnimation(deltaTime);
@@ -645,6 +759,7 @@ int main()
 		drawSkybox();
 
 		modelShader.use();
+		modelShader.setFloat("shininess", 32.0f);
 		modelShader.setVec3("viewPos", camera.Position);
 		modelShader.setFloat("shininess", 32.0f);
 		modelShader.setMat4("projection", getPerspective());
@@ -718,7 +833,11 @@ int main()
 		headScale.y = glm::length(glm::vec3(toHead[1]));
 		headScale.z = glm::length(glm::vec3(toHead[2]));
 		glm::vec3 helmetScale = glm::vec3(helmetSize) / headScale;
-		modelShader.setMat4("model", playerModelMat * toHead * /*swordHandOffset * */ helmetToWorld * glm::scale(glm::mat4(1.0f), glm::vec3(helmetScale)));
+		if (isHelmetOnHead) modelShader.setMat4("model", playerModelMat * toHead * helmetHeadOffset *  helmetToWorld * glm::scale(glm::mat4(1.0f), glm::vec3(helmetScale)));
+		else modelShader.setMat4("model", glm::translate(glm::mat4(1.0f), helmetPos) * helmetToWorld * glm::scale(glm::mat4(1.0f), glm::vec3(helmetSize)));
+		modelShader.setBool("useColor", true);
+		modelShader.setVec3("color", glm::vec3(0.4f, 0.4f, 0.4f));
+		modelShader.setFloat("shininess", 120.0f);
 		helmetModel.Draw(modelShader);
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -756,7 +875,12 @@ void processInput(GLFWwindow* window)
 	//	movement += glm::vec3(0, -1, 0);
 	//camera.ProcessKeyboard(movement * camera.MovementSpeed, deltaTime);
 
-	if (glm::length(movement) > 0.0f && charState != GRAB_IDLE && charState != IDLE_GRAB) {
+	if (glm::length(movement) > 0.0f && 
+		charState != GRAB_IDLE && charState != IDLE_GRAB && 
+		charState != PUNCH_IDLE && charState != IDLE_PUNCH &&
+		charState != SLASH_IDLE && charState != IDLE_SLASH &&
+		charState != SHEATH_IDLE && charState != IDLE_SHEATH)
+	{
 		movement = glm::normalize(movement);
 		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) currentMovementState = MovementState::SPRINTING;
 		else currentMovementState = MovementState::WALKING;
