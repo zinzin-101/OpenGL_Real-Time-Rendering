@@ -18,6 +18,7 @@ Q -> sheath/unsheath sword (if equipped)
 Some code are modified from [https://learnopengl.com/](https://learnopengl.com/) <br />
 Knight model is from [mixamo.com](https://www.mixamo.com/)  <br/>
 [Boat](https://free3d.com/3d-model/boat-v2--225787.html), [sword](https://free3d.com/3d-model/medieval-sword-69788.html) and [helmet](https://free3d.com/3d-model/warrior-helmet-628685.html) models are from [free3d.com](https://free3d.com/) <br />
+The skybox is from [polyhaven.com](https://polyhaven.com/)<br />
 ## Additional Info
 CMake is required to build the project <br />
 When starting the program it may take some time to load. <br />
