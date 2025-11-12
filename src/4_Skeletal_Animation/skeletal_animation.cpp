@@ -56,13 +56,6 @@ GLuint skyboxVAO, skyboxVBO, skyboxEBO;
 GLuint cubeVAO, cubeVBO, cubeEBO;
 GLuint outlineVAO, outlineVBO, outlineEBO;
 
-struct BoxCollider {
-	BoxCollider() : ownerPosition(nullptr), offset(0.0f), size(1.0f) {}
-	glm::vec3* ownerPosition;
-	glm::vec3 offset;
-	glm::vec3 size;
-};
-
 enum class MovementState {
 	IDLE,
 	WALKING,
@@ -71,6 +64,7 @@ enum class MovementState {
 
 // player
 MovementState currentMovementState = MovementState::IDLE;
+enum AnimState charState = IDLE;
 float walkSpeed = 5.0f;
 float sprintSpeed = walkSpeed * 4.0f;
 glm::vec3 playerPos = glm::vec3(0, 0.5f, 0);
@@ -83,6 +77,11 @@ glm::vec3 playerCurrentForward = playerForward;
 glm::vec3 playerCurrentRight = playerRight;
 glm::vec3 playerCurrentUp = playerUp;
 bool isSwordInHand = false;
+glm::vec3 swordPos = glm::vec3(0, 0.5f, 2);
+
+float grabCheckDistance = 1.5f;
+std::vector<glm::vec3*> grabbablePos;
+std::map<glm::vec3*, bool*> posToHandState;
 
 void initCube() {
 	// bind VAO
@@ -186,12 +185,12 @@ unsigned int getCubeMapTexture(std::string cubeMapPath[]) {
 void initSkybox() {
 	std::string cubeMapFaces[6] =
 	{
-		FileSystem::getPath("resources/objects/skybox/right.jpg"),
-		FileSystem::getPath("resources/objects/skybox/left.jpg"),
-		FileSystem::getPath("resources/objects/skybox/top.jpg"),
-		FileSystem::getPath("resources/objects/skybox/bottom.jpg"),
-		FileSystem::getPath("resources/objects/skybox/front.jpg"),
-		FileSystem::getPath("resources/objects/skybox/back.jpg")
+		FileSystem::getPath("resources/objects/horizon/right.jpg"),
+		FileSystem::getPath("resources/objects/horizon/left.jpg"),
+		FileSystem::getPath("resources/objects/horizon/top.jpg"),
+		FileSystem::getPath("resources/objects/horizon/bottom.jpg"),
+		FileSystem::getPath("resources/objects/horizon/front.jpg"),
+		FileSystem::getPath("resources/objects/horizon/back.jpg")
 	};
 
 	cubeMapTexture = getCubeMapTexture(cubeMapFaces);
@@ -269,13 +268,41 @@ void handlePlayerLerp(float dt) {
 		float step = glm::min(rate, angle);
 		float sign = (glm::cross(playerCurrentForward, playerForward).y >= 0.0f) ? 1.0f : -1.0f;
 
-		// Rotate current forward around Y by 'step'
 		glm::mat4 rot = glm::rotate(glm::mat4(1.0f), step * sign, glm::vec3(0, 1, 0));
 		playerCurrentForward = glm::normalize(glm::vec3(rot * glm::vec4(playerCurrentForward, 0.0f)));
 	}
 	
 	playerCurrentRight = glm::normalize(glm::cross(playerCurrentForward, glm::vec3(0, 1, 0)));
 	playerCurrentUp = glm::normalize(glm::vec3(0, 1, 0));
+}
+
+void handleDroppingSword() {
+	glm::vec3 newPos = playerPos;
+	newPos += playerCurrentForward * 1.0f;
+	newPos.y = 0.0f;
+	swordPos = newPos;
+	isSwordInHand = false;
+}
+
+void handleGrabbing() {
+	if (isSwordInHand) {
+		handleDroppingSword();
+		return;
+	}
+
+	glm::vec3* grabbable = nullptr;
+	float minDistance = -1.0f;
+	for (glm::vec3* objPos : grabbablePos) {
+		float distance = glm::length(*objPos - playerPos);
+		if (distance < grabCheckDistance) {
+			if (minDistance < 0 || distance < minDistance) {
+				minDistance = distance;
+				grabbable = objPos;
+			}
+		}
+	}
+
+	if (grabbable != nullptr) *posToHandState.at(grabbable) = true;
 }
 
 int main()
@@ -332,6 +359,8 @@ int main()
 	// load models
 	// -----------
 	// idle 3.3, walk 2.06, run 0.83, punch 1.03, kick 1.6
+
+
 	Model playerModel(FileSystem::getPath("resources/objects/mixamo/Knight D Pelegrini.dae"));
 	Animation idleAnimation(FileSystem::getPath("resources/objects/mixamo/WarriorIdle.dae"),&playerModel);
 	Animation walkAnimation(FileSystem::getPath("resources/objects/mixamo/Walking.dae"), &playerModel);
@@ -339,17 +368,16 @@ int main()
 	Animation grabAnimation(FileSystem::getPath("resources/objects/mixamo/Grab.dae"), &playerModel);
 	Animation punchAnimation(FileSystem::getPath("resources/objects/mixamo/Boxing.dae"), &playerModel);
 	Animator animator(&idleAnimation);
-	enum AnimState charState = IDLE;
+	charState = IDLE;
 	float blendAmount = 0.0f;
 	float blendRate = 0.055f;
 
+	Model boatModel(FileSystem::getPath("resources/objects/boat/boat.dae"));
+
 	Model swordModel(FileSystem::getPath("resources/objects/sword/sword.obj"));
+	Model helmetModel(FileSystem::getPath("resources/objects/helmet/helmet.obj"));
 
-	//float blendRate = 0.8f;
 
-	//stbi_set_flip_vertically_on_load(false);
-
-	//Model boatModel(FileSystem::getPath("resources/objects/boat/boat.dae"));
 	glm::mat4 boatToWorld =
 		glm::translate(glm::mat4(1.0f), glm::vec3(0,0,22)) *
 		glm::scale(glm::mat4(1.0f), glm::vec3(0.015f)) *
@@ -369,6 +397,13 @@ int main()
 		glm::rotate(glm::mat4(1.0), glm::radians(90.0f), glm::vec3(1, 0, 0)) *
 		glm::rotate(glm::mat4(1.0), glm::radians(90.0f), glm::vec3(0, 0, 1)) *
 		glm::translate(glm::mat4(1.0f), glm::vec3(0, 70, 0));
+
+	float helmetSize = 0.5f;
+	glm::mat4 helmetToWorld =
+		glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
+
+	grabbablePos.emplace_back(&swordPos);
+	posToHandState[&swordPos] = &isSwordInHand;
 
 	//stbi_set_flip_vertically_on_load(true);
 
@@ -391,6 +426,10 @@ int main()
 	//	printf("%s\n", s.c_str());
 
 	std::string rightHandNodeName = "mixamorig_LeftHand";
+	//std::string headNodeName = "mixamorig_Head";
+	std::string headNodeName = "mixamorig_HeadTop_End";
+
+	bool canGrab = true;
 
 	// render loop
 	// -----------
@@ -419,13 +458,18 @@ int main()
 		if (keyDownHandler(GLFW_KEY_5, window, keyDown))
 			animator.PlayAnimation(&punchAnimation, NULL, 0.0f, 0.0f, 0.0f);
 
-		if (keyDownHandler(GLFW_KEY_F, window, keyDown))
-			isSwordInHand = !isSwordInHand;
+		//if (keyDownHandler(GLFW_KEY_F, window, keyDown)) {
+		//	if (isSwordInHand) handleDroppingSword();
+		//	isSwordInHand = !isSwordInHand;
+		//}
 
 		//printf("playerspeed: %f\n", playerSpeed);
 		//printf("current state %i\n", charState);
+
 		switch (charState) {
 			case IDLE:
+				canGrab = true;
+
 				if (currentMovementState == MovementState::WALKING) {
 					blendAmount = 0.0f;
 					animator.PlayAnimation(&idleAnimation, &walkAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
@@ -441,7 +485,7 @@ int main()
 					animator.PlayAnimation(&idleAnimation, &runAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
 					charState = IDLE_RUN;
 				}
-				printf("idle \n");
+				//printf("idle \n");
 				break;
 			case IDLE_WALK:
 				blendAmount += blendRate;
@@ -453,7 +497,7 @@ int main()
 					animator.PlayAnimation(&walkAnimation, NULL, startTime, 0.0f, blendAmount);
 					charState = WALK;
 				}
-				printf("idle_walk \n");
+				//printf("idle_walk \n");
 				break;
 			case WALK:
 				animator.PlayAnimation(&walkAnimation, NULL, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
@@ -463,7 +507,7 @@ int main()
 				else if (currentMovementState == MovementState::IDLE) {
 					charState = WALK_IDLE;
 				}
-				printf("walking\n");
+				//printf("walking\n");
 				break;
 			case WALK_IDLE:
 				blendAmount += blendRate;
@@ -475,7 +519,7 @@ int main()
 					animator.PlayAnimation(&idleAnimation, NULL, startTime, 0.0f, blendAmount);
 					charState = IDLE;
 				}
-				printf("walk_idle \n");
+				//printf("walk_idle \n");
 				break;
 			case IDLE_GRAB:
 				blendAmount += blendRate;
@@ -487,9 +531,13 @@ int main()
 					animator.PlayAnimation(&grabAnimation, NULL, startTime, 0.0f, blendAmount);
 					charState = GRAB_IDLE;
 				}
-				printf("idle_grab\n");
+				//printf("idle_grab\n");
 				break;
 			case GRAB_IDLE:
+				if (animator.m_CurrentTime > 1.25f && canGrab) {
+					canGrab = false;
+					handleGrabbing();
+				}
 				if (animator.m_CurrentTime > 2.5f) {
 					blendAmount += blendRate;
 					blendAmount = fmod(blendAmount, 1.0f);
@@ -500,10 +548,10 @@ int main()
 						animator.PlayAnimation(&idleAnimation, NULL, startTime, 0.0f, blendAmount);
 						charState = IDLE;
 					}
-					printf("grab_idle \n");
+					//printf("grab_idle \n");
 				}
 				else {
-					printf("grabbing\n");
+					//printf("grabbing\n");
 				}
 				break;
 			case IDLE_RUN:
@@ -516,7 +564,7 @@ int main()
 					animator.PlayAnimation(&runAnimation, NULL, startTime, 0.0f, blendAmount);
 					charState = RUN;
 				}
-				printf("idle_run\n");
+				//printf("idle_run\n");
 				break;
 			case RUN:
 				animator.PlayAnimation(&runAnimation, NULL, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
@@ -538,7 +586,7 @@ int main()
 					animator.PlayAnimation(&walkAnimation, NULL, startTime, 0.0f, blendAmount);
 					charState = WALK;
 				}
-				printf("run_idle \n");
+				//printf("run_idle \n");
 				break;
 
 			case WALK_RUN:
@@ -551,7 +599,7 @@ int main()
 					animator.PlayAnimation(&runAnimation, NULL, startTime, 0.0f, blendAmount);
 					charState = RUN;
 				}
-				printf("walk_run \n");
+				//printf("walk_run \n");
 				break;
 
 			case RUN_IDLE:
@@ -564,7 +612,7 @@ int main()
 					animator.PlayAnimation(&idleAnimation, NULL, startTime, 0.0f, blendAmount);
 					charState = IDLE;
 				}
-				printf("run_idle \n");
+				//printf("run_idle \n");
 
 				break;
 		}
@@ -603,7 +651,9 @@ int main()
 		modelShader.setMat4("view", camera.GetViewMatrix());
 		glm::mat4 boatModelMat = glm::mat4(1.0f) * boatToWorld;
 		modelShader.setMat4("model", boatModelMat);
+		modelShader.setBool("useColor", false);
 		modelShader.setVec3("color", glm::vec3(0.6f));
+		boatModel.Draw(modelShader);
 
 		modelShader.setVec3("pointLights[0].ambient", glm::vec3(0.9f));
 		modelShader.setVec3("pointLights[0].diffuse", glm::vec3(0.4f));
@@ -613,7 +663,6 @@ int main()
 		modelShader.setFloat("pointLights[0].linear", 0.00009f);
 		modelShader.setFloat("pointLights[0].quadratic", 0.000032f);
 
-		//boatModel.Draw(modelShader);
 		modelShader.setMat4("model", glm::mat4(1.0f) * groundToWorld);
 		modelShader.setBool("useColor", true);
 		modelShader.setVec3("color", glm::vec3(0.5f, 0.5f, 0.5f));
@@ -658,9 +707,19 @@ int main()
 		glm::vec3 swordScale = glm::vec3(swordSize) / handScale;
 		
 		if (isSwordInHand) modelShader.setMat4("model", playerModelMat * toHand * swordHandOffset * swordToWorld * glm::scale(glm::mat4(1.0f), glm::vec3(swordScale)));
-		else modelShader.setMat4("model", swordToWorld * glm::scale(glm::mat4(1.0f), glm::vec3(swordSize)));
+		else modelShader.setMat4("model", glm::translate(glm::mat4(1.0f), swordPos) * swordToWorld * glm::scale(glm::mat4(1.0f), glm::vec3(swordSize)));
 		swordModel.Draw(modelShader);
 		//drawCube();
+		modelShader.setMat4("model", helmetToWorld);
+
+		glm::mat4 toHead = animator.m_BoneGlobalTransform.at(headNodeName);
+		glm::vec3 headScale;
+		headScale.x = glm::length(glm::vec3(toHead[0]));
+		headScale.y = glm::length(glm::vec3(toHead[1]));
+		headScale.z = glm::length(glm::vec3(toHead[2]));
+		glm::vec3 helmetScale = glm::vec3(helmetSize) / headScale;
+		modelShader.setMat4("model", playerModelMat * toHead * /*swordHandOffset * */ helmetToWorld * glm::scale(glm::mat4(1.0f), glm::vec3(helmetScale)));
+		helmetModel.Draw(modelShader);
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		// -------------------------------------------------------------------------------
@@ -697,7 +756,7 @@ void processInput(GLFWwindow* window)
 	//	movement += glm::vec3(0, -1, 0);
 	//camera.ProcessKeyboard(movement * camera.MovementSpeed, deltaTime);
 
-	if (glm::length(movement) > 0.0f) {
+	if (glm::length(movement) > 0.0f && charState != GRAB_IDLE && charState != IDLE_GRAB) {
 		movement = glm::normalize(movement);
 		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) currentMovementState = MovementState::SPRINTING;
 		else currentMovementState = MovementState::WALKING;
