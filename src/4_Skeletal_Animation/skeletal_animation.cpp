@@ -68,6 +68,8 @@ enum class MovementState {
 	WALKING,
 	SPRINTING
 };
+
+// player
 MovementState currentMovementState = MovementState::IDLE;
 float walkSpeed = 5.0f;
 float sprintSpeed = walkSpeed * 4.0f;
@@ -80,6 +82,7 @@ float playerLerpRate = glm::radians(540.0f);
 glm::vec3 playerCurrentForward = playerForward;
 glm::vec3 playerCurrentRight = playerRight;
 glm::vec3 playerCurrentUp = playerUp;
+bool isSwordInHand = false;
 
 void initCube() {
 	// bind VAO
@@ -339,6 +342,9 @@ int main()
 	enum AnimState charState = IDLE;
 	float blendAmount = 0.0f;
 	float blendRate = 0.055f;
+
+	Model swordModel(FileSystem::getPath("resources/objects/sword/sword.obj"));
+
 	//float blendRate = 0.8f;
 
 	//stbi_set_flip_vertically_on_load(false);
@@ -352,6 +358,17 @@ int main()
 	glm::mat4 groundToWorld = glm::scale(glm::mat4(1.0f), glm::vec3(50.0f, 1.0f, 50.0f));
 
 	glm::mat4 cubeToWorld = glm::mat4(1.0f);
+	float swordSize = 0.05f;
+	glm::mat4 swordToWorld =
+		glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0, 0, 1)) * 
+		glm::translate(glm::mat4(1.0f), glm::vec3(1.2f, 0, 0));
+
+	glm::mat4 swordHandOffset =
+		glm::rotate(glm::mat4(1.0), glm::radians(-30.0f), glm::vec3(0, 0, 1)) *
+		glm::translate(glm::mat4(1.0f), glm::vec3(17, 5, 5)) *
+		glm::rotate(glm::mat4(1.0), glm::radians(90.0f), glm::vec3(1, 0, 0)) *
+		glm::rotate(glm::mat4(1.0), glm::radians(90.0f), glm::vec3(0, 0, 1)) *
+		glm::translate(glm::mat4(1.0f), glm::vec3(0, 70, 0));
 
 	//stbi_set_flip_vertically_on_load(true);
 
@@ -401,6 +418,9 @@ int main()
 			animator.PlayAnimation(&grabAnimation, NULL, 0.0f, 0.0f, 0.0f);
 		if (keyDownHandler(GLFW_KEY_5, window, keyDown))
 			animator.PlayAnimation(&punchAnimation, NULL, 0.0f, 0.0f, 0.0f);
+
+		if (keyDownHandler(GLFW_KEY_F, window, keyDown))
+			isSwordInHand = !isSwordInHand;
 
 		//printf("playerspeed: %f\n", playerSpeed);
 		//printf("current state %i\n", charState);
@@ -595,6 +615,8 @@ int main()
 
 		//boatModel.Draw(modelShader);
 		modelShader.setMat4("model", glm::mat4(1.0f) * groundToWorld);
+		modelShader.setBool("useColor", true);
+		modelShader.setVec3("color", glm::vec3(0.5f, 0.5f, 0.5f));
 		drawCube();
 
 		// don't forget to enable shader before setting uniforms
@@ -612,32 +634,33 @@ int main()
 
 
 		// render the loaded model
-		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::scale(model, glm::vec3(1.f, 1.f, 1.f));	// it's a bit too big for our scene, so scale it down
+		glm::mat4 playerModelMat = glm::mat4(1.0f);
+		playerModelMat = glm::scale(playerModelMat, glm::vec3(1.f, 1.f, 1.f));	// it's a bit too big for our scene, so scale it down
 		glm::mat4 rotMat(
 			glm::vec4(playerCurrentRight, 0.0f),
 			glm::vec4(playerCurrentUp, 0.0f),
 			glm::vec4(playerCurrentForward, 0.0f),
 			glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
 		);
-		model = glm::translate(glm::mat4(1.0f), playerPos) * rotMat * model;
-		animShader.setMat4("model", model);
+		playerModelMat = glm::translate(glm::mat4(1.0f), playerPos) * rotMat * playerModelMat;
+		animShader.setMat4("model", playerModelMat);
 		playerModel.Draw(animShader);
 
 
 		modelShader.use();
+		modelShader.setBool("useColor", false);
 		modelShader.setVec3("color", glm::vec3(1, 0, 0));
 		glm::mat4 toHand = animator.m_BoneGlobalTransform.at(rightHandNodeName);
 		glm::vec3 handScale;
 		handScale.x = glm::length(glm::vec3(toHand[0]));
 		handScale.y = glm::length(glm::vec3(toHand[1]));
 		handScale.z = glm::length(glm::vec3(toHand[2]));
-		float cubeSize = 1.5f;
-		glm::vec3 cubeScale = glm::vec3(cubeSize) / handScale;
-		modelShader.setMat4("model", model * toHand * glm::translate(glm::mat4(1.0f), glm::vec3(0, 1, 0)) * glm::scale(glm::mat4(1.0f), cubeScale));
-		//modelShader.setMat4("model", glm::translate(glm::mat4(1.0f), glm::vec3(0,1,0)) * glm::scale(glm::mat4(1.0f), glm::vec3(cubeSize)));
+		glm::vec3 swordScale = glm::vec3(swordSize) / handScale;
 		
-		drawCube();
+		if (isSwordInHand) modelShader.setMat4("model", playerModelMat * toHand * swordHandOffset * swordToWorld * glm::scale(glm::mat4(1.0f), glm::vec3(swordScale)));
+		else modelShader.setMat4("model", swordToWorld * glm::scale(glm::mat4(1.0f), glm::vec3(swordSize)));
+		swordModel.Draw(modelShader);
+		//drawCube();
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		// -------------------------------------------------------------------------------
