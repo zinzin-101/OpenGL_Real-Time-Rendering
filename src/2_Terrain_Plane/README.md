@@ -1,5 +1,5 @@
 # Terrain Plane
-## Fly the plane to traverse around the mountainous terrain with day-night cycle. <br />
+### Fly the plane to traverse around the mountainous terrain with day-night cycle. <br />
 ![](https://github.com/zinzin-101/OpenGL_Real-Time-Rendering/blob/main/src/2_Terrain_Plane/gif/showcase1.gif) <br />
 ![](https://github.com/zinzin-101/OpenGL_Real-Time-Rendering/blob/main/src/2_Terrain_Plane/gif/showcase2.gif) <br />
 ![](https://github.com/zinzin-101/OpenGL_Real-Time-Rendering/blob/main/src/2_Terrain_Plane/gif/showcase3.gif) <br />
