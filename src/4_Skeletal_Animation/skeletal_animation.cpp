@@ -336,6 +336,10 @@ void handleGrabbing() {
 	}
 }
 
+void handleSheath() {
+	swordState = swordState == SwordState::HOLDING ? SwordState::SHEATHED : SwordState::HOLDING;
+}
+
 int main()
 {
 	// glfw: initialize and configure
@@ -431,6 +435,11 @@ int main()
 		glm::rotate(glm::mat4(1.0), glm::radians(90.0f), glm::vec3(0, 0, 1)) *
 		glm::translate(glm::mat4(1.0f), glm::vec3(0, 70, 0));
 
+	glm::mat4 swordHipOffset =
+		glm::rotate(glm::mat4(1.0), glm::radians(60.0f), glm::vec3(1, 0, 0)) *
+		glm::translate(glm::mat4(1.0f), glm::vec3(-20, -20, 0)) *
+		glm::rotate(glm::mat4(1.0), glm::radians(180.f), glm::vec3(0, 0, 1));
+
 	float helmetSize = 0.35f;
 	glm::mat4 helmetToWorld =
 		glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
@@ -460,6 +469,7 @@ int main()
 	keyDown[GLFW_KEY_7] = false;
 	keyDown[GLFW_KEY_E] = false;
 	keyDown[GLFW_KEY_F] = false;
+	keyDown[GLFW_KEY_Q] = false;
 
 	// draw in wireframe
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -517,12 +527,13 @@ int main()
 
 		bool isPressingE = keyDownHandler(GLFW_KEY_E, window, keyDown);
 		bool isPressingF = keyDownHandler(GLFW_KEY_F, window, keyDown);
+		bool isPressingQ = keyDownHandler(GLFW_KEY_Q, window, keyDown);
 
 		switch (charState) {
 			case IDLE:
 				canGrab = true;
 
-				if (isPressingE || isPressingF) {
+				if (isPressingE || isPressingF || isPressingQ) {
 					if (isPressingE) {
 						blendAmount = 0.0f;
 						animator.PlayAnimation(&idleAnimation, &grabAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
@@ -537,6 +548,11 @@ int main()
 						blendAmount = 0.0f;
 						animator.PlayAnimation(&idleAnimation, &punchAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
 						charState = IDLE_PUNCH;
+					}
+					if (isPressingQ && swordState != SwordState::NONE) {
+						blendAmount = 0.0f;
+						animator.PlayAnimation(&idleAnimation, &sheathAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
+						charState = IDLE_SHEATH;
 					}
 				}
 				else {
@@ -805,6 +821,38 @@ int main()
 					charState = SLASH_IDLE;
 				}
 				break;
+
+			case IDLE_SHEATH:
+				blendAmount += blendRate;
+				blendAmount = fmod(blendAmount, 1.0f);
+				animator.PlayAnimation(&idleAnimation, &sheathAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
+				if (blendAmount > 0.9f) {
+					blendAmount = 0.0f;
+					float startTime = animator.m_CurrentTime2;
+					animator.PlayAnimation(&sheathAnimation, NULL, startTime, 0.0f, blendAmount);
+					charState = SHEATH_IDLE;
+				}
+				break;
+
+			case SHEATH_IDLE:
+				if (animator.m_CurrentTime > 1.0f) {
+
+					if (canGrab) {
+						canGrab = false;
+						handleSheath();
+					}
+
+					blendAmount += blendRate;
+					blendAmount = fmod(blendAmount, 1.0f);
+					animator.PlayAnimation(&sheathAnimation, &idleAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
+					if (blendAmount > 0.9f) {
+						blendAmount = 0.0f;
+						float startTime = animator.m_CurrentTime2;
+						animator.PlayAnimation(&idleAnimation, NULL, startTime, 0.0f, blendAmount);
+						charState = IDLE;
+					}
+				}
+				break;
 		}
 
 		animator.UpdateAnimation(deltaTime);
@@ -895,10 +943,28 @@ int main()
 		handScale.x = glm::length(glm::vec3(toHand[0]));
 		handScale.y = glm::length(glm::vec3(toHand[1]));
 		handScale.z = glm::length(glm::vec3(toHand[2]));
-		glm::vec3 swordScale = glm::vec3(swordSize) / handScale;
+		glm::vec3 swordScaleHand = glm::vec3(swordSize) / handScale;
+
+		glm::mat4 toHip = animator.m_BoneGlobalTransform.at(hipNodeName);
+		glm::vec3 hipScale;
+		hipScale.x = glm::length(glm::vec3(toHip[0]));
+		hipScale.y = glm::length(glm::vec3(toHip[1]));
+		hipScale.z = glm::length(glm::vec3(toHip[2]));
+		glm::vec3 swordScaleHip = glm::vec3(swordSize) / hipScale;
 		
-		if (isSwordInHand) modelShader.setMat4("model", playerModelMat * toHand * swordHandOffset * swordToWorld * glm::scale(glm::mat4(1.0f), glm::vec3(swordScale)));
-		else modelShader.setMat4("model", glm::translate(glm::mat4(1.0f), swordPos) * swordToWorld * glm::scale(glm::mat4(1.0f), glm::vec3(swordSize)));
+		if (isSwordInHand) {
+			switch (swordState) {
+				case SwordState::HOLDING:
+					modelShader.setMat4("model", playerModelMat * toHand * swordHandOffset * swordToWorld * glm::scale(glm::mat4(1.0f), glm::vec3(swordScaleHand)));
+					break;
+				case SwordState::SHEATHED:
+					modelShader.setMat4("model", playerModelMat * toHip * swordHipOffset * swordToWorld * glm::scale(glm::mat4(1.0f), glm::vec3(swordScaleHip)));
+					break;
+			}
+		}
+		else {
+			modelShader.setMat4("model", glm::translate(glm::mat4(1.0f), swordPos) * swordToWorld * glm::scale(glm::mat4(1.0f), glm::vec3(swordSize)));
+		}
 		swordModel.Draw(modelShader);
 		//drawCube();
 		modelShader.setMat4("model", helmetToWorld);
