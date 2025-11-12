@@ -464,13 +464,14 @@ int main()
 	// draw in wireframe
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-	std::vector<std::string> animName = animator.GetAllNodeNames();
-	for (std::string s : animName)
-		printf("%s\n", s.c_str());
+	//std::vector<std::string> animName = animator.GetAllNodeNames();
+	//for (std::string s : animName)
+	//	printf("%s\n", s.c_str());
 
 	std::string rightHandNodeName = "mixamorig_LeftHand";
 	//std::string headNodeName = "mixamorig_Head";
 	std::string headNodeName = "mixamorig_HeadTop_End";
+	std::string hipNodeName = "mixamorig_Hips";
 
 	bool canGrab = true;
 
@@ -573,6 +574,18 @@ int main()
 				else if (currentMovementState == MovementState::IDLE) {
 					charState = WALK_IDLE;
 				}
+
+				if (isPressingF && swordState == SwordState::HOLDING) {
+					blendAmount = 0.0f;
+					animator.PlayAnimation(&idleAnimation, &slashAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
+					charState = WALK_SLASH;
+				}
+				if (isPressingF && swordState == SwordState::NONE) {
+					blendAmount = 0.0f;
+					animator.PlayAnimation(&idleAnimation, &punchAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
+					charState = WALK_PUNCH;
+				}
+
 				//printf("walking\n");
 				break;
 			case WALK_IDLE:
@@ -640,6 +653,18 @@ int main()
 				else if (currentMovementState == MovementState::IDLE) {
 					charState = RUN_IDLE;
 				}
+
+				if (isPressingF && swordState == SwordState::HOLDING) {
+					blendAmount = 0.0f;
+					animator.PlayAnimation(&idleAnimation, &slashAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
+					charState = RUN_SLASH;
+				}
+				if (isPressingF && swordState == SwordState::NONE) {
+					blendAmount = 0.0f;
+					animator.PlayAnimation(&idleAnimation, &punchAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
+					charState = RUN_PUNCH;
+				}
+
 				break;
 
 			case RUN_WALK:
@@ -681,6 +706,7 @@ int main()
 				//printf("run_idle \n");
 
 				break;
+
 			case IDLE_PUNCH:
 				blendAmount += blendRate;
 				blendAmount = fmod(blendAmount, 1.0f);
@@ -692,6 +718,7 @@ int main()
 					charState = PUNCH_IDLE;
 				}
 				break;
+
 			case PUNCH_IDLE:
 				if (animator.m_CurrentTime > 1.0f) {
 					blendAmount += blendRate;
@@ -716,6 +743,7 @@ int main()
 					charState = SLASH_IDLE;
 				}
 				break;
+
 			case SLASH_IDLE:
 				if (animator.m_CurrentTime > 1.0f) {
 					blendAmount += blendRate;
@@ -727,6 +755,54 @@ int main()
 						animator.PlayAnimation(&idleAnimation, NULL, startTime, 0.0f, blendAmount);
 						charState = IDLE;
 					}
+				}
+				break;
+
+			case WALK_PUNCH:
+				blendAmount += blendRate;
+				blendAmount = fmod(blendAmount, 1.0f);
+				animator.PlayAnimation(&walkAnimation, &punchAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
+				if (blendAmount > 0.9f) {
+					blendAmount = 0.0f;
+					float startTime = animator.m_CurrentTime2;
+					animator.PlayAnimation(&punchAnimation, NULL, startTime, 0.0f, blendAmount);
+					charState = PUNCH_IDLE;
+				}
+				break;
+
+			case RUN_PUNCH:
+				blendAmount += blendRate;
+				blendAmount = fmod(blendAmount, 1.0f);
+				animator.PlayAnimation(&runAnimation, &punchAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
+				if (blendAmount > 0.9f) {
+					blendAmount = 0.0f;
+					float startTime = animator.m_CurrentTime2;
+					animator.PlayAnimation(&punchAnimation, NULL, startTime, 0.0f, blendAmount);
+					charState = PUNCH_IDLE;
+				}
+				break;
+
+			case WALK_SLASH:
+				blendAmount += blendRate;
+				blendAmount = fmod(blendAmount, 1.0f);
+				animator.PlayAnimation(&walkAnimation, &slashAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
+				if (blendAmount > 0.9f) {
+					blendAmount = 0.0f;
+					float startTime = animator.m_CurrentTime2;
+					animator.PlayAnimation(&slashAnimation, NULL, startTime, 0.0f, blendAmount);
+					charState = SLASH_IDLE;
+				}
+				break;
+
+			case RUN_SLASH:
+				blendAmount += blendRate;
+				blendAmount = fmod(blendAmount, 1.0f);
+				animator.PlayAnimation(&runAnimation, &slashAnimation, animator.m_CurrentTime, animator.m_CurrentTime2, blendAmount);
+				if (blendAmount > 0.9f) {
+					blendAmount = 0.0f;
+					float startTime = animator.m_CurrentTime2;
+					animator.PlayAnimation(&slashAnimation, NULL, startTime, 0.0f, blendAmount);
+					charState = SLASH_IDLE;
 				}
 				break;
 		}
