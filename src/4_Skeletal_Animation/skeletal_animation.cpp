@@ -544,7 +544,7 @@ int main()
 						animator.PlayAnimation(&idleAnimation, &slashAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
 						charState = IDLE_SLASH;
 					}
-					if (isPressingF && swordState == SwordState::NONE) {
+					if (isPressingF && swordState != SwordState::HOLDING) {
 						blendAmount = 0.0f;
 						animator.PlayAnimation(&idleAnimation, &punchAnimation, animator.m_CurrentTime, 0.0f, blendAmount);
 						charState = IDLE_PUNCH;
