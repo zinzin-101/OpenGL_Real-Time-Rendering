@@ -235,7 +235,7 @@ void Game::render(float dt) {
 
     glm::vec3 lightPos0(0.0f, 50.0f, 0.0f);
     wavesShader.setVec3("dirLight.direction", glm::vec3(0, -1, 0));
-    wavesShader.setVec3("dirLight.ambient", glm::vec3(0.5f));
+    wavesShader.setVec3("dirLight.ambient", glm::vec3(0.7f));
     wavesShader.setVec3("dirLight.diffuse", glm::vec3(0.01f));
     wavesShader.setVec3("dirLight.specular", glm::vec3(0.001f));
     //wavesShader.setVec3("pointLights[0].position", lightPos0);
