@@ -227,56 +227,25 @@ void Game::render(float dt) {
     wavesShader.setMat4("view", view);
     wavesShader.setMat4("model", glm::mat4(1.0f));
     wavesShader.setVec3("viewPos", camera.Position);
-    wavesShader.setVec3("color", glm::vec3(1.0f));
-    wavesShader.setBool("useLighting", false);
+    wavesShader.setVec3("color", glm::vec3(0.498f, 0.804f, 1.0f));
+    wavesShader.setBool("useLighting", true);
     wavesShader.setFloat("phase", wavesPhase);
     wavesShader.setFloat("amplitude", WAVES_AMPLITUDE);
     wavesShader.setFloat("frequency", WAVES_FREQUENCY);
 
-    glm::vec3 lightPos0, lightPos1, lightPos2, lightPos3;
-    lightPos3.y = 30.0f;
-    lightPos0 = lightPos1 = lightPos2 = lightPos3;
-    lightPos0.x = 30.0f;
-    lightPos1.x = -30.0f;
-    lightPos2.x = -30.0f;
-    lightPos3.x = 30.0f;
-    lightPos0.z = 10.0f;
-    lightPos1.z = 10.0f;
-    lightPos2.z = -10.0f;
-    lightPos3.z = -10.0f;
-
-    wavesShader.setVec3("pointLights[0].position", lightPos0);
-    wavesShader.setVec3("pointLights[0].ambient", glm::vec3(0.9f));
-    wavesShader.setVec3("pointLights[0].diffuse", glm::vec3(0.2f));
-    wavesShader.setVec3("pointLights[0].specular", glm::vec3(0.3f));
-    wavesShader.setFloat("pointLights[0].constant", 0.05f);
-    wavesShader.setFloat("pointLights[0].linear", 0.000014f);
-    wavesShader.setFloat("pointLights[0].quadratic", 0.00001f);
-
-    wavesShader.setVec3("pointLights[1].position", lightPos1);
-    wavesShader.setVec3("pointLights[1].ambient", glm::vec3(0.9f));
-    wavesShader.setVec3("pointLights[1].diffuse", glm::vec3(0.2f));
-    wavesShader.setVec3("pointLights[1].specular", glm::vec3(0.3f));
-    wavesShader.setFloat("pointLights[1].constant", 0.05f);
-    wavesShader.setFloat("pointLights[1].linear", 0.000014f);
-    wavesShader.setFloat("pointLights[1].quadratic", 0.00001f);
-
-    wavesShader.setVec3("pointLights[2].position", lightPos2);
-    wavesShader.setVec3("pointLights[2].ambient", glm::vec3(0.9f));
-    wavesShader.setVec3("pointLights[2].diffuse", glm::vec3(0.2f));
-    wavesShader.setVec3("pointLights[2].specular", glm::vec3(0.3f));
-    wavesShader.setFloat("pointLights[2].constant", 0.05f);
-    wavesShader.setFloat("pointLights[2].linear", 0.000014f);
-    wavesShader.setFloat("pointLights[2].quadratic", 0.00001f);
-
-    wavesShader.setVec3("pointLights[3].position", lightPos3);
-    wavesShader.setVec3("pointLights[3].ambient", glm::vec3(0.9f));
-    wavesShader.setVec3("pointLights[3].diffuse", glm::vec3(0.2f));
-    wavesShader.setVec3("pointLights[3].specular", glm::vec3(0.3f));
-    wavesShader.setFloat("pointLights[3].constant", 0.05f);
-    wavesShader.setFloat("pointLights[3].linear", 0.000014f);
-    wavesShader.setFloat("pointLights[3].quadratic", 0.00001f);
-    wavesShader.setFloat("shininess", 20.0f);
+    glm::vec3 lightPos0(0.0f, 50.0f, 0.0f);
+    wavesShader.setVec3("dirLight.direction", glm::vec3(0, -1, 0));
+    wavesShader.setVec3("dirLight.ambient", glm::vec3(0.5f));
+    wavesShader.setVec3("dirLight.diffuse", glm::vec3(0.01f));
+    wavesShader.setVec3("dirLight.specular", glm::vec3(0.001f));
+    //wavesShader.setVec3("pointLights[0].position", lightPos0);
+    //wavesShader.setVec3("pointLights[0].ambient", glm::vec3(1.0f));
+    //wavesShader.setVec3("pointLights[0].diffuse", glm::vec3(0.6f));
+    //wavesShader.setVec3("pointLights[0].specular", glm::vec3(0.01f));
+    //wavesShader.setFloat("pointLights[0].constant", 0.95f);
+    //wavesShader.setFloat("pointLights[0].linear", 0.0009f);
+    //wavesShader.setFloat("pointLights[0].quadratic", 0.00005f);
+    //wavesShader.setFloat("shininess", 128.0f);
 
     drawWaves();
 }

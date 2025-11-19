@@ -37,7 +37,7 @@ struct SpotLight {
     vec3 specular;       
 };
 
-#define NUM_OF_POINT_LIGHTS 4
+#define NUM_OF_POINT_LIGHTS 1
 
 in vec3 FragPos;
 in vec3 Normal;
@@ -75,8 +75,9 @@ void main()
     if (useLighting){
         vec3 result =  vec3(0.0);
         for(int i = 0; i < NUM_OF_POINT_LIGHTS; i++)
-            result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
-        result += CalcSpotLight(spotLight, norm, FragPos, viewDir); 
+            //result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
+        //result += CalcSpotLight(spotLight, norm, FragPos, viewDir); 
+        result += CalcDirLight(dirLight, norm, viewDir); 
         FragColor = vec4(result, 1.0);
     }
     else{
