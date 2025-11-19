@@ -111,9 +111,9 @@ void Game::initColliderOutline() {
 void Game::initWaves() {
     // create flat plane vertex and indices
     std::vector<float> verts;
-    float offset = (float)WAVES_VERTS_WIDTH / 2.0f;
-    for (int x = 0; x < WAVES_VERTS_WIDTH; x++) {
-        for (float z = 0; z < WAVES_VERTS_WIDTH; z++) {
+    float offset = (float)WAVES_VERTS_WIDTH_NUM / 2.0f;
+    for (int x = 0; x < WAVES_VERTS_WIDTH_NUM; x++) {
+        for (float z = 0; z < WAVES_VERTS_WIDTH_NUM; z++) {
             verts.emplace_back(((float)x - offset) * WAVES_VERTS_SCALE);
             verts.emplace_back(0.0f);
             verts.emplace_back(((float)z - offset) * WAVES_VERTS_SCALE);
@@ -121,16 +121,16 @@ void Game::initWaves() {
     }
 
     std::vector<unsigned int> indices;
-    for (unsigned int i = 0; i < WAVES_VERTS_WIDTH - 1; i++) {
-        for (unsigned int j = 0; j < WAVES_VERTS_WIDTH; j++) {
+    for (unsigned int i = 0; i < WAVES_VERTS_WIDTH_NUM - 1; i++) {
+        for (unsigned int j = 0; j < WAVES_VERTS_WIDTH_NUM; j++) {
             for (unsigned int k = 0; k < 2; k++) {
-                indices.emplace_back(j + WAVES_VERTS_WIDTH * (i + k));
+                indices.emplace_back(j + WAVES_VERTS_WIDTH_NUM * (i + k));
             }
         }
     }
 
-    wavesStripCount = WAVES_VERTS_WIDTH - 1;
-    wavesVertsPerStrip = WAVES_VERTS_WIDTH * 2;
+    wavesStripCount = WAVES_VERTS_WIDTH_NUM - 1;
+    wavesVertsPerStrip = WAVES_VERTS_WIDTH_NUM * 2;
 
     // bind VAO
     glGenVertexArrays(1, &wavesVAO);
@@ -233,18 +233,18 @@ void Game::render(float dt) {
     wavesShader.setFloat("amplitude", WAVES_AMPLITUDE);
     wavesShader.setFloat("frequency", WAVES_FREQUENCY);
 
-    glm::vec3 lightPos0(0.0f, 50.0f, 0.0f);
+    //glm::vec3 lightPos(0.0f, 50.0f, 0.0f);
     wavesShader.setVec3("dirLight.direction", glm::vec3(0, -1, 0));
     wavesShader.setVec3("dirLight.ambient", glm::vec3(0.7f));
     wavesShader.setVec3("dirLight.diffuse", glm::vec3(0.01f));
     wavesShader.setVec3("dirLight.specular", glm::vec3(0.001f));
-    //wavesShader.setVec3("pointLights[0].position", lightPos0);
-    //wavesShader.setVec3("pointLights[0].ambient", glm::vec3(1.0f));
+    //wavesShader.setVec3("pointLights[0].position", lightPos);
+    //wavesShader.setVec3("pointLights[0].ambient", glm::vec3(0.9f));
     //wavesShader.setVec3("pointLights[0].diffuse", glm::vec3(0.6f));
     //wavesShader.setVec3("pointLights[0].specular", glm::vec3(0.01f));
     //wavesShader.setFloat("pointLights[0].constant", 0.95f);
-    //wavesShader.setFloat("pointLights[0].linear", 0.0009f);
-    //wavesShader.setFloat("pointLights[0].quadratic", 0.00005f);
+    //wavesShader.setFloat("pointLights[0].linear", 0.009f);
+    //wavesShader.setFloat("pointLights[0].quadratic", 0.0005f);
     //wavesShader.setFloat("shininess", 128.0f);
 
     drawWaves();

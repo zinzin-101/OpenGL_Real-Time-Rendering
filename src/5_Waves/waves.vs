@@ -16,17 +16,14 @@ void main()
 {
     vec3 pos = aPos;
 
-    pos.y = 
-    amplitude * sin(pos.x * frequency + phase) +
-    amplitude * sin(pos.z * frequency + phase) + 
-    0.5 * amplitude * sin(pos.x * 6.0 * frequency + phase / 2.0) + 
-    0.5 * amplitude * sin(pos.z * 5.0 * frequency - phase / 2.0);
+    pos.y = amplitude * sin(pos.x * frequency + phase)
+          + amplitude * sin(pos.z * frequency + phase)
+          + 0.5 * amplitude * sin(pos.x * frequency + phase / 2.0)
+          + 0.5 * amplitude * sin(pos.z * frequency + phase / 2.0);
 
-    float dfdx = amplitude * frequency * cos(aPos.x * frequency + phase)
-            + 3.0 * amplitude * frequency * cos(aPos.x * 6.0 * frequency + phase / 2.0);
+    float dfdx = amplitude * frequency * cos(aPos.x * frequency + phase) + 0.5 * amplitude * frequency * cos(aPos.x * frequency + phase / 2.0);
 
-    float dfdz = amplitude * frequency * cos(aPos.z * frequency + phase)
-            + 2.5 * amplitude * frequency * cos(aPos.z * 5.0 * frequency - phase / 2.0);
+    float dfdz = amplitude * frequency * cos(aPos.z * frequency + phase) + 0.5 * amplitude * frequency * cos(aPos.z * frequency + phase / 2.0);
 
     vec3 normal = normalize(vec3(-dfdx, 1.0, -dfdz));
     
