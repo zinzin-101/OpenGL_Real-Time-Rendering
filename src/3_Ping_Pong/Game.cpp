@@ -13,7 +13,7 @@ bool RenderComparator::operator()(const RenderingObject& obj1, const RenderingOb
 }
 
 Game::Game() :
-    shader("vertex.vs", "fragment.fs"),
+    waveShader("vertex.vs", "fragment.fs"),
     outlineShader("collider_outline.vs", "collider_outline.fs"),
     skyboxShader("skybox.vs", "skybox.fs"),
     paddleModel(FileSystem::getPath("resources/objects/paddle/paddle.obj")),
@@ -710,13 +710,13 @@ void Game::render(float dt) {
     skyboxShader.setMat4("projection", skyboxProjection);
     drawSkybox();
 
-    shader.use();
+    waveShader.use();
     // view/projection transformations
     glm::mat4 projection = getProjection();
     glm::mat4 view = cameras[currentCameraType]->GetViewMatrix();
-    shader.setMat4("projection", projection);
-    shader.setMat4("view", view);
-    shader.setVec3("viewPos", cameras[currentCameraType]->Position);
+    waveShader.setMat4("projection", projection);
+    waveShader.setMat4("view", view);
+    waveShader.setVec3("viewPos", cameras[currentCameraType]->Position);
 
     glm::vec3 lightPos0, lightPos1, lightPos2, lightPos3;
     lightPos3.y = 30.0f;
@@ -730,38 +730,38 @@ void Game::render(float dt) {
     lightPos2.z = -10.0f;
     lightPos3.z = -10.0f;
 
-    shader.setVec3("pointLights[0].position", lightPos0);
-    shader.setVec3("pointLights[0].ambient", glm::vec3(0.1f));
-    shader.setVec3("pointLights[0].diffuse", glm::vec3(0.2f));
-    shader.setVec3("pointLights[0].specular", glm::vec3(0.3f));
-    shader.setFloat("pointLights[0].constant", 0.5f);
-    shader.setFloat("pointLights[0].linear", 0.000014f);
-    shader.setFloat("pointLights[0].quadratic", 0.00001f);
+    waveShader.setVec3("pointLights[0].position", lightPos0);
+    waveShader.setVec3("pointLights[0].ambient", glm::vec3(0.1f));
+    waveShader.setVec3("pointLights[0].diffuse", glm::vec3(0.2f));
+    waveShader.setVec3("pointLights[0].specular", glm::vec3(0.3f));
+    waveShader.setFloat("pointLights[0].constant", 0.5f);
+    waveShader.setFloat("pointLights[0].linear", 0.000014f);
+    waveShader.setFloat("pointLights[0].quadratic", 0.00001f);
 
-    shader.setVec3("pointLights[1].position", lightPos1);
-    shader.setVec3("pointLights[1].ambient", glm::vec3(0.1f));
-    shader.setVec3("pointLights[1].diffuse", glm::vec3(0.2f));
-    shader.setVec3("pointLights[1].specular", glm::vec3(0.3f));
-    shader.setFloat("pointLights[1].constant", 0.5f);
-    shader.setFloat("pointLights[1].linear", 0.000014f);
-    shader.setFloat("pointLights[1].quadratic", 0.00001f);
+    waveShader.setVec3("pointLights[1].position", lightPos1);
+    waveShader.setVec3("pointLights[1].ambient", glm::vec3(0.1f));
+    waveShader.setVec3("pointLights[1].diffuse", glm::vec3(0.2f));
+    waveShader.setVec3("pointLights[1].specular", glm::vec3(0.3f));
+    waveShader.setFloat("pointLights[1].constant", 0.5f);
+    waveShader.setFloat("pointLights[1].linear", 0.000014f);
+    waveShader.setFloat("pointLights[1].quadratic", 0.00001f);
 
-    shader.setVec3("pointLights[2].position", lightPos2);
-    shader.setVec3("pointLights[2].ambient", glm::vec3(0.1f));
-    shader.setVec3("pointLights[2].diffuse", glm::vec3(0.2f));
-    shader.setVec3("pointLights[2].specular", glm::vec3(0.3f));
-    shader.setFloat("pointLights[2].constant", 0.5f);
-    shader.setFloat("pointLights[2].linear", 0.000014f);
-    shader.setFloat("pointLights[2].quadratic", 0.00001f);
+    waveShader.setVec3("pointLights[2].position", lightPos2);
+    waveShader.setVec3("pointLights[2].ambient", glm::vec3(0.1f));
+    waveShader.setVec3("pointLights[2].diffuse", glm::vec3(0.2f));
+    waveShader.setVec3("pointLights[2].specular", glm::vec3(0.3f));
+    waveShader.setFloat("pointLights[2].constant", 0.5f);
+    waveShader.setFloat("pointLights[2].linear", 0.000014f);
+    waveShader.setFloat("pointLights[2].quadratic", 0.00001f);
 
-    shader.setVec3("pointLights[3].position", lightPos3);
-    shader.setVec3("pointLights[3].ambient", glm::vec3(0.1f));
-    shader.setVec3("pointLights[3].diffuse", glm::vec3(0.2f));
-    shader.setVec3("pointLights[3].specular", glm::vec3(0.3f));
-    shader.setFloat("pointLights[3].constant", 0.5f);
-    shader.setFloat("pointLights[3].linear", 0.000014f);
-    shader.setFloat("pointLights[3].quadratic", 0.00001f);
-    shader.setFloat("shininess", 20.0f);
+    waveShader.setVec3("pointLights[3].position", lightPos3);
+    waveShader.setVec3("pointLights[3].ambient", glm::vec3(0.1f));
+    waveShader.setVec3("pointLights[3].diffuse", glm::vec3(0.2f));
+    waveShader.setVec3("pointLights[3].specular", glm::vec3(0.3f));
+    waveShader.setFloat("pointLights[3].constant", 0.5f);
+    waveShader.setFloat("pointLights[3].linear", 0.000014f);
+    waveShader.setFloat("pointLights[3].quadratic", 0.00001f);
+    waveShader.setFloat("shininess", 20.0f);
 
     opacityRenderQueue = std::priority_queue<RenderingObject, std::vector<RenderingObject>, RenderComparator>(); // clear priority queue
 
@@ -784,10 +784,10 @@ void Game::render(float dt) {
                 rotMat *
                 modelToWorld[obj.model];
 
-            shader.setMat4("model", model);
+            waveShader.setMat4("model", model);
 
-            shader.setFloat("opacity", 1.0f);
-            obj.model->Draw(shader);
+            waveShader.setFloat("opacity", 1.0f);
+            obj.model->Draw(waveShader);
         }
     }
 
@@ -812,10 +812,10 @@ void Game::render(float dt) {
             rotMat *
             modelToWorld[obj.model];
 
-        shader.setMat4("model", model);
+        waveShader.setMat4("model", model);
 
-        shader.setFloat("opacity", PLAYER_OPACITY);
-        obj.model->Draw(shader);
+        waveShader.setFloat("opacity", PLAYER_OPACITY);
+        obj.model->Draw(waveShader);
 
     }
     glDisable(GL_BLEND);

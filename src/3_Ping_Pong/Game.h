@@ -98,7 +98,7 @@ struct RenderComparator {
 
 class Game {
 	private:
-		Shader shader;
+		Shader waveShader;
 		Shader outlineShader;
 		Shader skyboxShader;
 		Model paddleModel;
