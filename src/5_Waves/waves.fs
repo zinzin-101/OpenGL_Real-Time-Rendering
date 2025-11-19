@@ -37,11 +37,10 @@ struct SpotLight {
     vec3 specular;       
 };
 
-#define NUM_OF_POINT_LIGHTS 2
+#define NUM_OF_POINT_LIGHTS 4
 
 in vec3 FragPos;
 in vec3 Normal;
-in float height;
 //in vec2 TexCoords;
 
 uniform vec3 color;
@@ -50,6 +49,8 @@ uniform DirLight dirLight;
 uniform PointLight pointLights[NUM_OF_POINT_LIGHTS];
 uniform SpotLight spotLight;
 uniform float shininess;
+
+uniform bool useLighting;
 
 vec3 currentColor;
 
@@ -71,11 +72,16 @@ void main()
 
     currentColor = color;
 
-    vec3 result =  vec3(0.0);
-    for(int i = 0; i < NUM_OF_POINT_LIGHTS; i++)
-        result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
-    result += CalcSpotLight(spotLight, norm, FragPos, viewDir); 
-    FragColor = vec4(result, 1.0);
+    if (useLighting){
+        vec3 result =  vec3(0.0);
+        for(int i = 0; i < NUM_OF_POINT_LIGHTS; i++)
+            result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
+        result += CalcSpotLight(spotLight, norm, FragPos, viewDir); 
+        FragColor = vec4(result, 1.0);
+    }
+    else{
+        FragColor = vec4(currentColor, 1.0);
+    }
 }
 
 // calculates the color when using a directional light.

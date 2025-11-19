@@ -24,11 +24,16 @@ const double MIN_TIME_PER_FRAME = 1.0 / (double)TARGET_FPS;
 const double PI = 3.14159265358979323846;
 
 // Game settings
+const unsigned int WAVES_VERTS_WIDTH = 100;
+const float WAVES_VERTS_SCALE = 1.5f;
+const float WAVES_SPEED = 3.0f;
+const float WAVES_AMPLITUDE = 1.5f;
+const float WAVES_FREQUENCY = 2.5f;
 
 // Player settings
 const float FOV = 60;
-const float FREE_CAM_FAST_MOVE_SPEED = 10;
-const float FREE_CAM_MOVE_SPEED = 50;
+const float FREE_CAM_FAST_MOVE_SPEED = 50;
+const float FREE_CAM_MOVE_SPEED = 10;
 
 //struct Object {
 //	int id;
@@ -66,7 +71,7 @@ struct Physics {
 
 class Game {
 	private:
-		Shader waveShader;
+		Shader wavesShader;
 		Shader outlineShader;
 		Shader skyboxShader;
 
@@ -74,8 +79,11 @@ class Game {
 
 		unsigned int cubeMapTexture;
 		GLuint skyboxVAO, skyboxVBO, skyboxEBO;
-
 		GLuint outlineVAO, outlineVBO, outlineEBO;
+
+		unsigned int wavesStripCount, wavesVertsPerStrip;
+		GLuint wavesVAO, wavesVBO, wavesEBO;
+		float wavesPhase;
 
 		//std::vector<Object> objects;
 		//std::vector<BoxCollider> colliders;
@@ -96,6 +104,9 @@ class Game {
 
 		void initSkybox();
 		void drawSkybox();
+
+		void initWaves();
+		void drawWaves();
 
 		void initColliderOutline();
 		void init();
