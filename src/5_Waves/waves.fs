@@ -83,8 +83,8 @@ void main()
     else{
         FragColor = vec4(currentColor, 1.0);
     }
-    norm = (norm + vec3(1.0)) / 2.0;
-    FragColor = vec4(norm, 1.0);
+    //norm = (norm + vec3(1.0)) / 2.0;
+    //FragColor = vec4(norm.x, norm.z, norm.y, 1.0);
 }
 
 // calculates the color when using a directional light.
@@ -100,7 +100,7 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
     vec3 ambient = light.ambient * currentColor;
     vec3 diffuse = light.diffuse * diff * currentColor;
     vec3 specular = light.specular * spec * currentColor;
-    return (ambient + diffuse + specular);
+    return (ambient + diffuse);
 }
 
 // calculates the color when using a point light.

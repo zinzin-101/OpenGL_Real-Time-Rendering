@@ -196,9 +196,9 @@ void Game::setup() {
 }
 
 void Game::update(float dt) {
-    std::cout << "cam pos: " << camera.Position << std::endl;
+    //std::cout << "cam pos: " << camera.Position << std::endl;
     this->dt = dt;
-    wavesTime += WAVES_SPEED * dt;
+    wavesTime +=  dt;
 }
 
 glm::mat4 Game::getProjection() const {
@@ -230,14 +230,24 @@ void Game::render(float dt) {
     wavesShader.setVec3("color", glm::vec3(0.498f, 0.804f, 1.0f));
     wavesShader.setBool("useLighting", true);
     wavesShader.setFloat("time", wavesTime);
-    wavesShader.setFloat("amplitude", WAVES_AMPLITUDE);
-    wavesShader.setFloat("wavelength", WAVES_LENGTH);
+    for (int i = 0; i < 4; i++) {
+        std::string indexString = std::to_string(i);
+        float multiplier = glm::clamp(i * 1.25f, 0.75f, 2.25f);
+        std::string amplitude = "amplitude[" + indexString + "]";
+        std::string wavelength = "wavelength[" + indexString + "]";
+        std::string speed = "speed[" + indexString + "]";
+        std::string direction = "direction[" + indexString + "]";
+        wavesShader.setVec3(direction, WAVES_DIRECTION[i]);
+        wavesShader.setFloat(amplitude, WAVES_AMPLITUDE * multiplier);
+        wavesShader.setFloat(wavelength, WAVES_LENGTH * multiplier);
+        wavesShader.setFloat(speed, WAVES_SPEED * multiplier);
+    }
 
     //glm::vec3 lightPos(0.0f, 50.0f, 0.0f);
-    wavesShader.setVec3("dirLight.direction", glm::vec3(0, -1, 0));
-    wavesShader.setVec3("dirLight.ambient", glm::vec3(0.7f));
-    wavesShader.setVec3("dirLight.diffuse", glm::vec3(0.01f));
-    wavesShader.setVec3("dirLight.specular", glm::vec3(0.001f));
+    wavesShader.setVec3("dirLight.direction", glm::vec3(0, -1, -1));
+    wavesShader.setVec3("dirLight.ambient", glm::vec3(0.2f));
+    wavesShader.setVec3("dirLight.diffuse", glm::vec3(0.5f));
+    wavesShader.setVec3("dirLight.specular", glm::vec3(0.0f));
     //wavesShader.setVec3("pointLights[0].position", lightPos);
     //wavesShader.setVec3("pointLights[0].ambient", glm::vec3(0.9f));
     //wavesShader.setVec3("pointLights[0].diffuse", glm::vec3(0.6f));
