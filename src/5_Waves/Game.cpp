@@ -65,12 +65,12 @@ unsigned int Game::getCubeMapTexture(std::string cubeMapPath[]) {
 void Game::initSkybox() {
     std::string cubeMapFaces[6] =
     {
-        FileSystem::getPath("resources/objects/skybox/right.jpg"),
-        FileSystem::getPath("resources/objects/skybox/left.jpg"),
-        FileSystem::getPath("resources/objects/skybox/top.jpg"),
-        FileSystem::getPath("resources/objects/skybox/bottom.jpg"),
-        FileSystem::getPath("resources/objects/skybox/front.jpg"),
-        FileSystem::getPath("resources/objects/skybox/back.jpg")
+        FileSystem::getPath("resources/objects/horizon/right.jpg"),
+        FileSystem::getPath("resources/objects/horizon/left.jpg"),
+        FileSystem::getPath("resources/objects/horizon/top.jpg"),
+        FileSystem::getPath("resources/objects/horizon/bottom.jpg"),
+        FileSystem::getPath("resources/objects/horizon/front.jpg"),
+        FileSystem::getPath("resources/objects/horizon/back.jpg")
     };
 
     cubeMapTexture = getCubeMapTexture(cubeMapFaces);
@@ -237,7 +237,7 @@ void Game::render(float dt) {
         std::string wavelength = "wavelength[" + indexString + "]";
         std::string speed = "speed[" + indexString + "]";
         std::string direction = "direction[" + indexString + "]";
-        wavesShader.setVec3(direction, WAVES_DIRECTION[i]);
+        wavesShader.setVec3(direction, WAVES_DIRECTIONS[i]);
         wavesShader.setFloat(amplitude, WAVES_AMPLITUDE * multiplier);
         wavesShader.setFloat(wavelength, WAVES_LENGTH * multiplier);
         wavesShader.setFloat(speed, WAVES_SPEED * multiplier);
@@ -247,15 +247,15 @@ void Game::render(float dt) {
     wavesShader.setVec3("dirLight.direction", glm::vec3(0, -1, -1));
     wavesShader.setVec3("dirLight.ambient", glm::vec3(0.2f));
     wavesShader.setVec3("dirLight.diffuse", glm::vec3(0.5f));
-    wavesShader.setVec3("dirLight.specular", glm::vec3(0.0f));
+    wavesShader.setVec3("dirLight.specular", glm::vec3(0.5f));
     //wavesShader.setVec3("pointLights[0].position", lightPos);
-    //wavesShader.setVec3("pointLights[0].ambient", glm::vec3(0.9f));
+    //wavesShader.setVec3("pointLights[0].ambient", glm::vec3(0.2f));
     //wavesShader.setVec3("pointLights[0].diffuse", glm::vec3(0.6f));
-    //wavesShader.setVec3("pointLights[0].specular", glm::vec3(0.01f));
+    //wavesShader.setVec3("pointLights[0].specular", glm::vec3(0.5f));
     //wavesShader.setFloat("pointLights[0].constant", 0.95f);
     //wavesShader.setFloat("pointLights[0].linear", 0.009f);
     //wavesShader.setFloat("pointLights[0].quadratic", 0.0005f);
-    //wavesShader.setFloat("shininess", 128.0f);
+    wavesShader.setFloat("shininess", 128.0f);
 
     drawWaves();
 }

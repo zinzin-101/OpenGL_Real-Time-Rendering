@@ -100,7 +100,7 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
     vec3 ambient = light.ambient * currentColor;
     vec3 diffuse = light.diffuse * diff * currentColor;
     vec3 specular = light.specular * spec * currentColor;
-    return (ambient + diffuse);
+    return (ambient + diffuse + specular);
 }
 
 // calculates the color when using a point light.
