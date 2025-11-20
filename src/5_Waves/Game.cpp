@@ -163,7 +163,7 @@ void Game::initWaves() {
         GL_STATIC_DRAW
     );
 
-    wavesPhase = 0.0f;
+    wavesTime = 0.0f;
 }
 
 void Game::drawWaves() {
@@ -198,7 +198,7 @@ void Game::setup() {
 void Game::update(float dt) {
     std::cout << "cam pos: " << camera.Position << std::endl;
     this->dt = dt;
-    wavesPhase += WAVES_SPEED * dt;
+    wavesTime += WAVES_SPEED * dt;
 }
 
 glm::mat4 Game::getProjection() const {
@@ -229,9 +229,9 @@ void Game::render(float dt) {
     wavesShader.setVec3("viewPos", camera.Position);
     wavesShader.setVec3("color", glm::vec3(0.498f, 0.804f, 1.0f));
     wavesShader.setBool("useLighting", true);
-    wavesShader.setFloat("phase", wavesPhase);
+    wavesShader.setFloat("time", wavesTime);
     wavesShader.setFloat("amplitude", WAVES_AMPLITUDE);
-    wavesShader.setFloat("frequency", WAVES_FREQUENCY);
+    wavesShader.setFloat("wavelength", WAVES_LENGTH);
 
     //glm::vec3 lightPos(0.0f, 50.0f, 0.0f);
     wavesShader.setVec3("dirLight.direction", glm::vec3(0, -1, 0));

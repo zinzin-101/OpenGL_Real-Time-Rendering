@@ -8,22 +8,22 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-uniform float phase;
+uniform float time;
 uniform float amplitude;
-uniform float frequency;
+uniform float wavelength;
 
 void main()
 {
     vec3 pos = aPos;
 
-    pos.y = amplitude * sin(pos.x * frequency + phase)
-          + amplitude * sin(pos.z * frequency + phase)
-          + 0.5 * amplitude * sin(pos.x * frequency + phase / 2.0)
-          + 0.5 * amplitude * sin(pos.z * frequency + phase / 2.0);
+    pos.y = amplitude * sin(pos.x * wavelength + time)
+          + amplitude * sin(pos.z * wavelength + time)
+          + 0.5 * amplitude * sin(pos.x * wavelength + time / 2.0)
+          + 0.5 * amplitude * sin(pos.z * wavelength + time / 2.0);
 
-    float dfdx = amplitude * frequency * cos(aPos.x * frequency + phase) + 0.5 * amplitude * frequency * cos(aPos.x * frequency + phase / 2.0);
+    float dfdx = amplitude * wavelength * cos(aPos.x * wavelength + time) + 0.5 * amplitude * wavelength * cos(aPos.x * wavelength + time / 2.0);
 
-    float dfdz = amplitude * frequency * cos(aPos.z * frequency + phase) + 0.5 * amplitude * frequency * cos(aPos.z * frequency + phase / 2.0);
+    float dfdz = amplitude * wavelength * cos(aPos.z * wavelength + time) + 0.5 * amplitude * wavelength * cos(aPos.z * wavelength + time / 2.0);
 
     vec3 normal = normalize(vec3(-dfdx, 1.0, -dfdz));
     

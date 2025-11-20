@@ -83,6 +83,8 @@ void main()
     else{
         FragColor = vec4(currentColor, 1.0);
     }
+    norm = (norm + vec3(1.0)) / 2.0;
+    FragColor = vec4(norm, 1.0);
 }
 
 // calculates the color when using a directional light.

@@ -27,8 +27,9 @@ const double PI = 3.14159265358979323846;
 const unsigned int WAVES_VERTS_WIDTH_NUM = 300;
 const float WAVES_VERTS_SCALE = 0.25f;
 const float WAVES_SPEED = 3.0f;
-const float WAVES_AMPLITUDE = 0.8f;
-const float WAVES_FREQUENCY = 0.25f;
+const float WAVES_AMPLITUDE = 1.5f;
+const float WAVES_LENGTH = 0.25f;
+//const float WAVES_LENGTH = 4.0f;
 
 // Player settings
 const float FOV = 60;
@@ -83,7 +84,7 @@ class Game {
 
 		unsigned int wavesStripCount, wavesVertsPerStrip;
 		GLuint wavesVAO, wavesVBO, wavesEBO;
-		float wavesPhase;
+		float wavesTime;
 
 		//std::vector<Object> objects;
 		//std::vector<BoxCollider> colliders;
