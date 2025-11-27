@@ -8,7 +8,7 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-#define NUM_OF_SINE_WAVES 24
+#define NUM_OF_SINE_WAVES 10
 
 uniform float time;
 uniform float amplitude[NUM_OF_SINE_WAVES];
@@ -21,8 +21,8 @@ void main()
     vec3 pos = aPos;
     
     float height = 0.0;
-    float dx = 0.0f;
-    float dz = 0.0f;
+    float dx = 0.0;
+    float dz = 0.0;
 
     float b_a = 1.0;
     float b_f = 1.0;
@@ -35,9 +35,12 @@ void main()
         float a = b_a * amplitude[i];
         float f = b_f * frequency;
 
+        //float a = amplitude[i];
+        //float f = frequency;
+
         height += a * exp(sin(((dir.x * pos.x + dir.z * pos.z) + dx + dz) * f + time * phase) - 1.0);
-        dx += f * dir.x * a * cos((dir.x * pos.x + dir.z * pos.z) * f + time * phase) * exp(sin((dir.x * pos.x + dir.z * pos.z) * f + time * phase) - 1.0);
-        dz += f * dir.z * a * cos((dir.x * pos.x + dir.z * pos.z) * f + time * phase) * exp(sin((dir.x * pos.x + dir.z * pos.z) * f + time * phase) - 1.0);
+        dx += f * dir.x * a * cos(((dir.x * pos.x + dir.z * pos.z) + dx + dz) * f + time * phase) * exp(sin(((dir.x * pos.x + dir.z * pos.z) + dx + dz) * f + time * phase) - 1.0);
+        dz += f * dir.z * a * cos(((dir.x * pos.x + dir.z * pos.z) + dx + dz) * f + time * phase) * exp(sin(((dir.x * pos.x + dir.z * pos.z) + dx + dz) * f + time * phase) - 1.0);
 
         b_a *= 0.92;
         b_f *= 1.08;

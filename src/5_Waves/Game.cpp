@@ -164,6 +164,9 @@ void Game::initWaves() {
     );
 
     wavesTime = 0.0f;
+    for (int i = 0; i < 12; i++) {
+        waveDirections[i] = glm::vec3(Random::randFloat(), 0.0f, Random::randFloat());
+    }
 }
 
 void Game::drawWaves() {
@@ -230,13 +233,13 @@ void Game::render(float dt) {
     wavesShader.setVec3("color", glm::vec3(0.498f, 0.804f, 1.0f));
     wavesShader.setBool("useLighting", true);
     wavesShader.setFloat("time", wavesTime);
-    for (int i = 0; i < 24; i++) {
+    for (int i = 0; i < 12; i++) {
         std::string indexString = std::to_string(i);
         std::string amplitude = "amplitude[" + indexString + "]";
         std::string wavelength = "wavelength[" + indexString + "]";
         std::string speed = "speed[" + indexString + "]";
         std::string direction = "direction[" + indexString + "]";
-        wavesShader.setVec3(direction, WAVES_DIRECTIONS[i % 4]);
+        wavesShader.setVec3(direction, waveDirections[i]);
         wavesShader.setFloat(amplitude, WAVES_AMPLITUDES[i % 4]);
         wavesShader.setFloat(wavelength, WAVES_LENGTHS[i % 4]);
         wavesShader.setFloat(speed, WAVES_SPEEDS[i % 4]);
