@@ -232,15 +232,14 @@ void Game::render(float dt) {
     wavesShader.setFloat("time", wavesTime);
     for (int i = 0; i < 4; i++) {
         std::string indexString = std::to_string(i);
-        float multiplier = glm::clamp(i * 1.25f, 0.75f, 2.25f);
         std::string amplitude = "amplitude[" + indexString + "]";
         std::string wavelength = "wavelength[" + indexString + "]";
         std::string speed = "speed[" + indexString + "]";
         std::string direction = "direction[" + indexString + "]";
         wavesShader.setVec3(direction, WAVES_DIRECTIONS[i]);
-        wavesShader.setFloat(amplitude, WAVES_AMPLITUDE * multiplier);
-        wavesShader.setFloat(wavelength, WAVES_LENGTH * multiplier);
-        wavesShader.setFloat(speed, WAVES_SPEED * multiplier);
+        wavesShader.setFloat(amplitude, WAVES_AMPLITUDES[i]);
+        wavesShader.setFloat(wavelength, WAVES_LENGTHS[i]);
+        wavesShader.setFloat(speed, WAVES_SPEEDS[i]);
     }
 
     //glm::vec3 lightPos(0.0f, 50.0f, 0.0f);

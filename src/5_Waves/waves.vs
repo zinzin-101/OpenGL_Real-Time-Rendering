@@ -28,9 +28,9 @@ void main()
         vec3 dir = normalize(direction[i]);
         float frequency = 2.0 / wavelength[i];
         float phase = speed[i] * (2.0 / wavelength[i]);
-        height += amplitude[i] * sin((dir.x * pos.x + dir.z * pos.z) * frequency + time * phase);
-        dx += frequency * dir.x * amplitude[i] * cos((dir.x * pos.x + dir.z * pos.z) * frequency + time * phase);
-        dz += frequency * dir.z * amplitude[i] * cos((dir.x * pos.x + dir.z * pos.z) * frequency + time * phase);
+        height += amplitude[i] * exp(sin((dir.x * pos.x + dir.z * pos.z) * frequency + time * phase) - 1.0);
+        dx += frequency * dir.x * amplitude[i] * cos((dir.x * pos.x + dir.z * pos.z) * frequency + time * phase) * exp(sin((dir.x * pos.x + dir.z * pos.z) * frequency + time * phase) - 1.0);
+        dz += frequency * dir.z * amplitude[i] * cos((dir.x * pos.x + dir.z * pos.z) * frequency + time * phase) * exp(sin((dir.x * pos.x + dir.z * pos.z) * frequency + time * phase) - 1.0);
     }
 
     vec3 normal = normalize(vec3(-dx, 1.0, -dz));
