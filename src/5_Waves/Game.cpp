@@ -65,12 +65,12 @@ unsigned int Game::getCubeMapTexture(std::string cubeMapPath[]) {
 void Game::initSkybox() {
     std::string cubeMapFaces[6] =
     {
-        FileSystem::getPath("resources/objects/skybox/right.jpg"),
-        FileSystem::getPath("resources/objects/skybox/left.jpg"),
-        FileSystem::getPath("resources/objects/skybox/top.jpg"),
-        FileSystem::getPath("resources/objects/skybox/bottom.jpg"),
-        FileSystem::getPath("resources/objects/skybox/front.jpg"),
-        FileSystem::getPath("resources/objects/skybox/back.jpg")
+        FileSystem::getPath("resources/objects/skybox2/right.jpg"),
+        FileSystem::getPath("resources/objects/skybox2/left.jpg"),
+        FileSystem::getPath("resources/objects/skybox2/top.jpg"),
+        FileSystem::getPath("resources/objects/skybox2/bottom.jpg"),
+        FileSystem::getPath("resources/objects/skybox2/front.jpg"),
+        FileSystem::getPath("resources/objects/skybox2/back.jpg")
     };
 
     cubeMapTexture = getCubeMapTexture(cubeMapFaces);
@@ -247,10 +247,10 @@ void Game::render(float dt) {
     }
 
     //glm::vec3 lightPos(0.0f, 50.0f, 0.0f);
-    wavesShader.setVec3("dirLight.direction", glm::vec3(-0.428103f, -0.66131f, 0.615952f));
-    wavesShader.setVec3("dirLight.ambient", glm::vec3(0.2f));
-    wavesShader.setVec3("dirLight.diffuse", glm::vec3(0.5f));
-    wavesShader.setVec3("dirLight.specular", glm::vec3(0.5f));
+    wavesShader.setVec3("dirLight.direction", glm::vec3(-0.37217f, -0.684547f, 0.626806f));
+    wavesShader.setVec3("dirLight.ambient", glm::vec3(0.3f));
+    wavesShader.setVec3("dirLight.diffuse", glm::vec3(0.6f));
+    wavesShader.setVec3("dirLight.specular", glm::vec3(0.9f));
     //wavesShader.setVec3("pointLights[0].position", lightPos);
     //wavesShader.setVec3("pointLights[0].ambient", glm::vec3(0.2f));
     //wavesShader.setVec3("pointLights[0].diffuse", glm::vec3(0.6f));
