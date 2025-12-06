@@ -52,6 +52,8 @@ uniform float shininess;
 
 uniform bool useLighting;
 
+uniform samplerCube skybox;
+
 vec3 currentColor;
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
@@ -70,7 +72,11 @@ void main()
     //// phase 3: spot light
     //result += CalcSpotLight(spotLight, norm, FragPos, viewDir); 
 
-    currentColor = color;
+    vec3 incidence = normalize(FragPos - viewPos);
+    vec3 reflection = reflect(incidence , normalize(Normal));
+    vec4 skyColor = texture(skybox, reflection); 
+
+    currentColor = skyColor.rgb;
 
     if (useLighting){
         vec3 result =  vec3(0.0);
@@ -96,10 +102,17 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
     // specular shading
     vec3 reflectDir = reflect(-lightDir, normal);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+
+    // fresnel
+    float fresnel = 1.0;
+    for (int i = 0; i < 5; i++){
+        fresnel *= (1.0 - dot(viewDir, normal));
+    }
+
     // combine results
     vec3 ambient = light.ambient * currentColor;
     vec3 diffuse = light.diffuse * diff * currentColor;
-    vec3 specular = light.specular * spec * currentColor;
+    vec3 specular = light.specular * spec * currentColor * fresnel;
     return (ambient + diffuse + specular);
 }
 

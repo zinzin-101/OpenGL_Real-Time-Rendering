@@ -165,7 +165,7 @@ void Game::initWaves() {
 
     wavesTime = 0.0f;
     for (int i = 0; i < 12; i++) {
-        waveDirections[i] = glm::vec3(Random::randFloat(), 0.0f, Random::randFloat());
+        waveDirections[i] = glm::vec3(Random::randFloat(1.0f), 0.0f, Random::randFloat(1.0f));
     }
 }
 
@@ -232,6 +232,7 @@ void Game::render(float dt) {
     wavesShader.setVec3("viewPos", camera.Position);
     wavesShader.setVec3("color", glm::vec3(0.498f, 0.804f, 1.0f));
     wavesShader.setBool("useLighting", true);
+    wavesShader.setInt("skybox", 0);
     wavesShader.setFloat("time", wavesTime);
     for (int i = 0; i < 12; i++) {
         std::string indexString = std::to_string(i);
@@ -246,7 +247,7 @@ void Game::render(float dt) {
     }
 
     //glm::vec3 lightPos(0.0f, 50.0f, 0.0f);
-    wavesShader.setVec3("dirLight.direction", glm::vec3(0, -1, -1));
+    wavesShader.setVec3("dirLight.direction", glm::vec3(-1, -1, 1));
     wavesShader.setVec3("dirLight.ambient", glm::vec3(0.2f));
     wavesShader.setVec3("dirLight.diffuse", glm::vec3(0.5f));
     wavesShader.setVec3("dirLight.specular", glm::vec3(0.5f));
