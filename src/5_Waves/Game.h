@@ -26,7 +26,7 @@ const double PI = 3.14159265358979323846;
 // Game settings
 const unsigned int WAVES_VERTS_WIDTH_NUM = 1000;
 const float WAVES_VERTS_SCALE = 0.25f;
-const float WAVES_SPEEDS[4] = { 1.20f, 1.80f, 0.9f, 2.5f };
+const float WAVES_SPEEDS[4] = { 3.0f, 5.0f, 3.0f, 6.0f };
 const float WAVES_AMPLITUDES[4] = { 2.0f, 1.0f, 0.5f, 0.25f };
 //const float WAVES_LENGTH = 0.25f;
 const glm::vec3 WAVES_DIRECTIONS[4] = { glm::vec3(1.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.f), glm::vec3(-1.0f, 0.0f, -0.8f) };

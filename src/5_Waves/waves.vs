@@ -8,7 +8,7 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-#define NUM_OF_SINE_WAVES 10
+#define NUM_OF_SINE_WAVES 36
 
 uniform float time;
 uniform float amplitude[NUM_OF_SINE_WAVES];

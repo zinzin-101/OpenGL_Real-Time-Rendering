@@ -53,6 +53,7 @@ uniform float shininess;
 uniform bool useLighting;
 
 uniform samplerCube skybox;
+uniform float skyboxBlendAmount;
 
 vec3 currentColor;
 
@@ -76,7 +77,10 @@ void main()
     vec3 reflection = reflect(incidence , normalize(Normal));
     vec4 skyColor = texture(skybox, reflection); 
 
-    currentColor = skyColor.rgb;
+
+    vec4 blendedColor = (1.0 - skyboxBlendAmount) * vec4(color, 1.0) + skyColor * skyboxBlendAmount;
+
+    currentColor = blendedColor.rgb;
 
     if (useLighting){
         vec3 result =  vec3(0.0);
@@ -104,10 +108,9 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
 
     // fresnel
-    float fresnel = 1.0;
-    for (int i = 0; i < 5; i++){
-        fresnel *= (1.0 - dot(viewDir, normal));
-    }
+    float normalreflection = 0.04; 
+    float cos = max(0.0, dot(viewDir, normal));
+    float fresnel = normalreflection  + (1.0 - normalreflection) * pow(1.0 - cos, 5.0);
 
     // combine results
     vec3 ambient = light.ambient * currentColor;

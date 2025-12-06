@@ -199,7 +199,7 @@ void Game::setup() {
 }
 
 void Game::update(float dt) {
-    std::cout << "cam view dir: " << camera.Forward << std::endl;
+    //std::cout << "cam view dir: " << camera.Forward << std::endl;
     this->dt = dt;
     wavesTime +=  dt;
 }
@@ -233,14 +233,15 @@ void Game::render(float dt) {
     wavesShader.setVec3("color", glm::vec3(0.498f, 0.804f, 1.0f));
     wavesShader.setBool("useLighting", true);
     wavesShader.setInt("skybox", 0);
+    wavesShader.setFloat("skyboxBlendAmount", 0.45f);
     wavesShader.setFloat("time", wavesTime);
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < 36; i++) {
         std::string indexString = std::to_string(i);
         std::string amplitude = "amplitude[" + indexString + "]";
         std::string wavelength = "wavelength[" + indexString + "]";
         std::string speed = "speed[" + indexString + "]";
         std::string direction = "direction[" + indexString + "]";
-        wavesShader.setVec3(direction, waveDirections[i]);
+        wavesShader.setVec3(direction, waveDirections[i % 12]);
         wavesShader.setFloat(amplitude, WAVES_AMPLITUDES[i % 4]);
         wavesShader.setFloat(wavelength, WAVES_LENGTHS[i % 4]);
         wavesShader.setFloat(speed, WAVES_SPEEDS[i % 4]);
@@ -249,8 +250,8 @@ void Game::render(float dt) {
     //glm::vec3 lightPos(0.0f, 50.0f, 0.0f);
     wavesShader.setVec3("dirLight.direction", glm::vec3(-0.37217f, -0.684547f, 0.626806f));
     wavesShader.setVec3("dirLight.ambient", glm::vec3(0.3f));
-    wavesShader.setVec3("dirLight.diffuse", glm::vec3(0.6f));
-    wavesShader.setVec3("dirLight.specular", glm::vec3(0.9f));
+    wavesShader.setVec3("dirLight.diffuse", glm::vec3(0.8f));
+    wavesShader.setVec3("dirLight.specular", glm::vec3(0.2f));
     //wavesShader.setVec3("pointLights[0].position", lightPos);
     //wavesShader.setVec3("pointLights[0].ambient", glm::vec3(0.2f));
     //wavesShader.setVec3("pointLights[0].diffuse", glm::vec3(0.6f));
@@ -258,7 +259,7 @@ void Game::render(float dt) {
     //wavesShader.setFloat("pointLights[0].constant", 0.95f);
     //wavesShader.setFloat("pointLights[0].linear", 0.009f);
     //wavesShader.setFloat("pointLights[0].quadratic", 0.0005f);
-    wavesShader.setFloat("shininess", 128.0f);
+    wavesShader.setFloat("shininess", 16.0f);
 
     drawWaves();
 }
