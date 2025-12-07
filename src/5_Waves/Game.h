@@ -31,21 +31,12 @@ const float WAVES_AMPLITUDES[4] = { 2.0f, 2.0f, 0.5f, 0.25f };
 //const float WAVES_LENGTH = 0.25f;
 const glm::vec3 WAVES_DIRECTIONS[4] = { glm::vec3(1.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.f), glm::vec3(-1.0f, 0.0f, -0.8f) };
 const float WAVES_LENGTHS[4] = { 20.0f, 10.0f, 5.0f, 2.5f };
+const float BOAT_HEIGHT_DAMPING_FACTOR = 0.9f;
 
 // Player settings
 const float FOV = 60;
 const float FREE_CAM_FAST_MOVE_SPEED = 50;
 const float FREE_CAM_MOVE_SPEED = 10;
-
-//struct Object {
-//	int id;
-//	std::string name;
-//	Model* model;
-//	glm::vec3 position;
-//	glm::vec3 forward;
-//	glm::vec3 right;
-//	glm::vec3 up;
-//};
 
 struct BoxCollider {
 	BoxCollider(): ownerId(-1), offset(0.0f), size(1.0f) {}
@@ -61,21 +52,12 @@ struct Physics {
 	glm::vec3 acceleration;
 };
 
-//struct RenderingObject {
-//	RenderingObject(const Object* object, float distanceFromCamera): object(object), distanceFromCamera(distanceFromCamera) {}
-//	const Object* object;
-//	float distanceFromCamera;
-//};
-
-//struct RenderComparator {
-//	bool operator()(const RenderingObject& obj1, const RenderingObject& obj2);
-//};
-
 class Game {
 	private:
 		Shader wavesShader;
 		Shader outlineShader;
 		Shader skyboxShader;
+		Shader objectShader;
 
 		//std::map<Model*, glm::mat4> modelToWorld;
 
@@ -87,6 +69,9 @@ class Game {
 		GLuint wavesVAO, wavesVBO, wavesEBO;
 		float wavesTime;
 		glm::vec3 waveDirections[12];
+
+		Model boatModel;
+		glm::vec3 boatPosition;
 
 		//std::vector<Object> objects;
 		//std::vector<BoxCollider> colliders;
@@ -113,7 +98,8 @@ class Game {
 
 		void initColliderOutline();
 		void init();
-		void setup();
+
+		glm::vec3 getBoatPositionFromWaves();
 
 		//Object& getNewObject();
 		//Object& getNewObjectWithCollider();

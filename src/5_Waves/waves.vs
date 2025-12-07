@@ -48,6 +48,7 @@ void main()
 
     vec3 normal = normalize(vec3(-dx, 1.0, -dz));
     pos.y = height;
+
     FragPos = vec3(model * vec4(pos, 1.0));
     //Normal = mat3(transpose(inverse(model))) * aNormal;
     Normal = mat3(transpose(inverse(model))) * normal;

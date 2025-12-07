@@ -36,7 +36,7 @@ struct SpotLight {
     vec3 specular;       
 };
 
-#define NR_POINT_LIGHTS 4
+#define NR_POINT_LIGHTS 1
 
 in vec3 FragPos;
 in vec3 Normal;
@@ -54,7 +54,6 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 
 uniform sampler2D texture_diffuse1;
-uniform float opacity;
 
 vec3 color;
 
@@ -68,19 +67,12 @@ void main()
     color.g = texColor.g;
     color.b = texColor.b;
     vec3 result =  vec3(0.0);
-    for(int i = 0; i <  NR_POINT_LIGHTS; i++)
-        result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
+    //for(int i = 0; i <  NR_POINT_LIGHTS; i++)
+        //result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
 
-    float magnitude = length(result);
+    result = CalcDirLight(dirLight, norm, viewDir);
 
-    if (magnitude < 0.25f) magnitude = 0.25f;
-    else if (magnitude < 0.5f) magnitude = 0.5f;
-    else if (magnitude < 0.75f) magnitude = 0.75f;
-    else magnitude = 1.0f;
-
-    result = normalize(result) * magnitude;
-
-    FragColor = vec4(result, texColor.a * opacity);
+    FragColor = vec4(result, 1.0f);
 }
 
 // calculates the color when using a directional light.

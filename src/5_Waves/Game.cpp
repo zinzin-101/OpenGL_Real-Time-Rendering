@@ -15,7 +15,9 @@ static ostream& operator<<(ostream& out, const glm::vec3& v);
 Game::Game() :
     wavesShader("waves.vs", "waves.fs"),
     outlineShader("collider_outline.vs", "collider_outline.fs"),
-    skyboxShader("skybox.vs", "skybox.fs")
+    skyboxShader("skybox.vs", "skybox.fs"),
+    objectShader("vertex.vs", "fragment.fs"),
+    boatModel(FileSystem::getPath("resources/objects/boat/boat.dae"))
 {
     init();
 }
@@ -192,10 +194,44 @@ void Game::init() {
     initColliderOutline();
     
     initWaves();
+
+    boatPosition = glm::vec3();
 }
 
-void Game::setup() {
+glm::vec3 Game::getBoatPositionFromWaves() {
+    const int NUM_OF_SINE_WAVES = 36;
+    glm::vec3 pos = boatPosition;
 
+    float height = 0.0f;
+    float dx = 0.0f;
+    float dz = 0.0f;
+
+    float b_a = 1.0f;
+    float b_f = 1.0f;
+
+    for (int i = 0; i < NUM_OF_SINE_WAVES; i++) {
+        glm::vec3 dir = normalize(waveDirections[i % 12]);
+        float frequency = 2.0f / WAVES_LENGTHS[i % 4];
+        float phase = WAVES_SPEEDS[i % 4] * (2.0f / WAVES_LENGTHS[i % 4]);
+
+        float a = b_a * WAVES_AMPLITUDES[i % 4];
+        float f = b_f * frequency;
+
+        height += a * exp(sin(((dir.x * pos.x + dir.z * pos.z) + dx + dz) * f + wavesTime * phase) - 1.0f);
+        dx += f * dir.x * a * cos(((dir.x * pos.x + dir.z * pos.z) + dx + dz) * f + wavesTime * phase) * exp(sin(((dir.x * pos.x + dir.z * pos.z) + dx + dz) * f + wavesTime * phase) - 1.0f);
+        dz += f * dir.z * a * cos(((dir.x * pos.x + dir.z * pos.z) + dx + dz) * f + wavesTime * phase) * exp(sin(((dir.x * pos.x + dir.z * pos.z) + dx + dz) * f + wavesTime * phase) - 1.0f);
+
+        b_a *= 0.92f;
+        b_f *= 1.08f;
+    }
+
+    //std::cout << "wave height: " << height << std::endl;
+    
+    //return glm::vec3(0.0f, -1.5f, 0.0f);
+
+    height *= BOAT_HEIGHT_DAMPING_FACTOR;
+
+    return glm::vec3(pos.x, height, pos.z);
 }
 
 void Game::update(float dt) {
@@ -212,6 +248,29 @@ void Game::render(float dt) {
     glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    glm::mat4 projection = getProjection();
+    glm::mat4 view = camera.GetViewMatrix();
+
+    // boat
+    glm::mat4 boatToWorld =
+        glm::translate(glm::mat4(1.0f), glm::vec3(0, -1.5f, 22)) *
+        glm::scale(glm::mat4(1.0f), glm::vec3(0.015f)) *
+        glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+    objectShader.use();
+    objectShader.setMat4("projection", projection);
+    objectShader.setMat4("view", view);
+
+    objectShader.setMat4("model", glm::translate(glm::mat4(1.0f), getBoatPositionFromWaves()) * boatToWorld);
+
+    objectShader.setVec3("viewPos", camera.Position);
+    objectShader.setVec3("dirLight.direction", glm::vec3(-0.486897f, -0.0627906f, 0.8712f));
+    objectShader.setVec3("dirLight.ambient", glm::vec3(0.4f));
+    objectShader.setVec3("dirLight.diffuse", glm::vec3(0.6f));
+    objectShader.setVec3("dirLight.specular", glm::vec3(0.9f));
+
+    boatModel.Draw(objectShader);
+
     // skybox
     skyboxShader.use();
     glm::mat4 skyboxView = glm::mat4(1.0f);
@@ -224,14 +283,14 @@ void Game::render(float dt) {
 
     wavesShader.use();
     // view/projection transformations
-    glm::mat4 projection = getProjection();
-    glm::mat4 view = camera.GetViewMatrix();
     wavesShader.setMat4("projection", projection);
     wavesShader.setMat4("view", view);
     wavesShader.setMat4("model", glm::mat4(1.0f));
     wavesShader.setVec3("viewPos", camera.Position);
     wavesShader.setVec3("color", glm::vec3(0.11372549019f, 0.63529411764f, 0.84705882352f));
     wavesShader.setBool("useLighting", true);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture);
     wavesShader.setInt("skybox", 0);
     wavesShader.setFloat("skyboxBlendAmount", 0.6f);
     wavesShader.setFloat("time", wavesTime);
@@ -252,13 +311,6 @@ void Game::render(float dt) {
     wavesShader.setVec3("dirLight.ambient", glm::vec3(0.4f));
     wavesShader.setVec3("dirLight.diffuse", glm::vec3(0.6f));
     wavesShader.setVec3("dirLight.specular", glm::vec3(0.9f));
-    //wavesShader.setVec3("pointLights[0].position", lightPos);
-    //wavesShader.setVec3("pointLights[0].ambient", glm::vec3(0.2f));
-    //wavesShader.setVec3("pointLights[0].diffuse", glm::vec3(0.6f));
-    //wavesShader.setVec3("pointLights[0].specular", glm::vec3(0.5f));
-    //wavesShader.setFloat("pointLights[0].constant", 0.95f);
-    //wavesShader.setFloat("pointLights[0].linear", 0.009f);
-    //wavesShader.setFloat("pointLights[0].quadratic", 0.0005f);
     wavesShader.setFloat("shininess", 16.0f);
 
     drawWaves();
@@ -319,6 +371,15 @@ void Game::processKeyboard(GLFWwindow* window, float dt) {
         movement += glm::vec3(0, 1, 0);
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
         movement += glm::vec3(0, -1, 0);
+
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+        boatPosition.z += 5.0f * dt;
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+        boatPosition.z -= 5.0f * dt;
+    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+        boatPosition.x += 5.0f * dt;
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+        boatPosition.x -= 5.0f * dt;
 
     movement *= glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ? FREE_CAM_FAST_MOVE_SPEED : FREE_CAM_MOVE_SPEED;
     camera.ProcessKeyboard(movement, dt);
