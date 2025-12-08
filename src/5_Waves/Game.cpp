@@ -222,9 +222,14 @@ glm::vec3 Game::getBoatPositionFromWaves(glm::vec3 position, glm::vec3& normal) 
         float a = b_a * WAVES_AMPLITUDES[i % 4];
         float f = b_f * frequency;
 
-        height += a * exp(sin(((dir.x * pos.x + dir.z * pos.z) + dx + dz) * f + wavesTime * phase) - 1.0f);
-        dx += f * dir.x * a * cos(((dir.x * pos.x + dir.z * pos.z) + dx + dz) * f + wavesTime * phase) * exp(sin(((dir.x * pos.x + dir.z * pos.z) + dx + dz) * f + wavesTime * phase) - 1.0f);
-        dz += f * dir.z * a * cos(((dir.x * pos.x + dir.z * pos.z) + dx + dz) * f + wavesTime * phase) * exp(sin(((dir.x * pos.x + dir.z * pos.z) + dx + dz) * f + wavesTime * phase) - 1.0f);
+        float dotPhase = (dir.x * pos.x + dir.z * pos.z) * f + wavesTime * phase;
+        float sine = sin(dotPhase);
+        float cosine = cos(dotPhase);
+        float exponent = exp(sine - 1.0f);
+
+        height += a * exponent;
+        dx += dir.x * a * cosine * exponent * f;
+        dz += dir.z * a * cosine * exponent * f;
 
         b_a *= 0.92f;
         b_f *= 1.08f;
@@ -233,6 +238,9 @@ glm::vec3 Game::getBoatPositionFromWaves(glm::vec3 position, glm::vec3& normal) 
     //std::cout << "wave height: " << height << std::endl;
     
     //return glm::vec3(0.0f, -1.5f, 0.0f);
+
+    pos.x += dx;
+    pos.z += dz;
 
     height *= BOAT_HEIGHT_DAMPING_FACTOR;
     height += BOAT_HEIGHT_FLOATING_OFFSET;
@@ -274,7 +282,7 @@ glm::vec3 Game::getAverageBoatPositionFromWaves(glm::vec3& normal) {
 void Game::update(float dt) {
     //std::cout << "cam view dir: " << camera.Forward << std::endl;
     this->dt = dt;
-    wavesTime +=  dt;
+    wavesTime += dt;
 
     glm::vec3 surfaceNormal;
     glm::vec3 target = getAverageBoatPositionFromWaves(surfaceNormal);
