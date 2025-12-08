@@ -31,9 +31,10 @@ const float WAVES_AMPLITUDES[4] = { 2.0f, 2.0f, 0.5f, 0.25f };
 //const float WAVES_LENGTH = 0.25f;
 const glm::vec3 WAVES_DIRECTIONS[4] = { glm::vec3(1.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.f), glm::vec3(-1.0f, 0.0f, -0.8f) };
 const float WAVES_LENGTHS[4] = { 20.0f, 10.0f, 5.0f, 2.5f };
-const float BOAT_HEIGHT_DAMPING_FACTOR = 0.9f;
+const float BOAT_HEIGHT_DAMPING_FACTOR = 0.95f;
+const float BOAT_HEIGHT_FLOATING_OFFSET = -0.5f;
 const float BOAT_HEIGHT_LERP_SPEED = 5.0f;
-const float BOAT_ROTATION_SPEED = 0.05f;
+const float BOAT_ROTATION_SPEED = 0.125f;
 const unsigned int WAVES_SAMPLE_GRID_SIZE = 5;
 const float WAVES_SAMPLE_SPACING = 0.25f;
 

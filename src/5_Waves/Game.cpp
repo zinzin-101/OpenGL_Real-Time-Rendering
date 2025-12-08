@@ -235,6 +235,7 @@ glm::vec3 Game::getBoatPositionFromWaves(glm::vec3 position, glm::vec3& normal) 
     //return glm::vec3(0.0f, -1.5f, 0.0f);
 
     height *= BOAT_HEIGHT_DAMPING_FACTOR;
+    height += BOAT_HEIGHT_FLOATING_OFFSET;
 
     normal = glm::normalize(glm::vec3(-dx, 1.0f, -dz));
 
@@ -247,12 +248,11 @@ glm::vec3 Game::getAverageBoatPositionFromWaves(glm::vec3& normal) {
 
     glm::vec3 normalSum = glm::vec3(0.0f);
     glm::vec3 tempNormal;
-    //sum += getBoatPositionFromWaves(boatPosition, tempNormal);
-    sum += getBoatPositionFromWaves(boatPosition, normal);
-    normalSum += tempNormal;
-    sampleCount++;
+    //getBoatPositionFromWaves(boatPosition, normal);
+    //normalSum += tempNormal;
+    //sampleCount++;
     
-    float startingOffset = -WAVES_SAMPLE_SPACING * ((float)WAVES_SAMPLE_GRID_SIZE / 2.0f);
+    float startingOffset = -WAVES_SAMPLE_SPACING * ((float)(WAVES_SAMPLE_GRID_SIZE - 1) / 2.0f);
     for (int i = 0; i < WAVES_SAMPLE_GRID_SIZE; i++) {
         for (int j = 0; j < WAVES_SAMPLE_GRID_SIZE; j++) {
             float x = startingOffset + WAVES_SAMPLE_SPACING * (float)i + boatPosition.x;
@@ -266,7 +266,7 @@ glm::vec3 Game::getAverageBoatPositionFromWaves(glm::vec3& normal) {
 
     float height = sum.y / (float)sampleCount;
     glm::vec3 pos = glm::vec3(boatPosition.x, height, boatPosition.z);
-    //normal = glm::normalize(tempNormal / (float)sampleCount); // avg normal
+    normal = glm::normalize(normalSum / (float)sampleCount);
 
     return pos;
 }
@@ -307,7 +307,6 @@ void Game::render(float dt) {
 
     // boat
     glm::mat4 boatToWorld =
-        glm::translate(glm::mat4(1.0f), glm::vec3(0, -1.5f, 0.0f)) *
         glm::scale(glm::mat4(1.0f), glm::vec3(0.015f)) *
         glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
