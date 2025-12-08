@@ -195,7 +195,8 @@ void Game::init() {
     
     initWaves();
 
-    boatPosition = glm::vec3();
+    boatPosition = glm::vec3(0.0f, 0.0f, 0.0f);
+    camera.Position = glm::vec3(0.0f, 0.0f, 0.0f);
 }
 
 glm::vec3 Game::getBoatPositionFromWaves() {
@@ -253,7 +254,7 @@ void Game::render(float dt) {
 
     // boat
     glm::mat4 boatToWorld =
-        glm::translate(glm::mat4(1.0f), glm::vec3(0, -1.5f, 22)) *
+        glm::translate(glm::mat4(1.0f), glm::vec3(0, -1.5f, 0.0f)) *
         glm::scale(glm::mat4(1.0f), glm::vec3(0.015f)) *
         glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
