@@ -196,12 +196,16 @@ void Game::init() {
     initWaves();
 
     boatPosition = glm::vec3(0.0f, 0.0f, 0.0f);
+    boatForward = glm::vec3(0.0f, 0.0f, 1.0f);
+    boatRight = glm::vec3(1.0f, 0.0f, 0.0f);
+    boatUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
     camera.Position = glm::vec3(0.0f, 0.0f, 0.0f);
 }
 
-glm::vec3 Game::getBoatPositionFromWaves() {
+glm::vec3 Game::getBoatPositionFromWaves(glm::vec3 position, glm::vec3& normal) {
     const int NUM_OF_SINE_WAVES = 36;
-    glm::vec3 pos = boatPosition;
+    glm::vec3 pos = position;
 
     float height = 0.0f;
     float dx = 0.0f;
@@ -232,13 +236,57 @@ glm::vec3 Game::getBoatPositionFromWaves() {
 
     height *= BOAT_HEIGHT_DAMPING_FACTOR;
 
+    normal = glm::normalize(glm::vec3(-dx, 1.0f, -dz));
+
     return glm::vec3(pos.x, height, pos.z);
+}
+
+glm::vec3 Game::getAverageBoatPositionFromWaves(glm::vec3& normal) {
+    glm::vec3 sum = glm::vec3(0.0f);
+    int sampleCount = 0;
+
+    glm::vec3 tempNormal;
+    sum += getBoatPositionFromWaves(boatPosition, tempNormal);
+    sampleCount++;
+    normal = tempNormal;
+    
+    float startingOffset = -WAVES_SAMPLE_SPACING * ((float)WAVES_SAMPLE_GRID_SIZE / 2.0f);
+    for (int i = 0; i < WAVES_SAMPLE_GRID_SIZE; i++) {
+        for (int j = 0; j < WAVES_SAMPLE_GRID_SIZE; j++) {
+            float x = startingOffset + WAVES_SAMPLE_SPACING * (float)(i + 1) + boatPosition.x;
+            float z = startingOffset + WAVES_SAMPLE_SPACING * (float)(j + 1) + boatPosition.z;
+            glm::vec3 tempPos = glm::vec3(x, 0.0f, z);
+            sum += getBoatPositionFromWaves(tempPos, tempNormal);
+            sampleCount++;
+        }
+    }
+
+    float height = sum.y / (float)sampleCount;
+    glm::vec3 pos = glm::vec3(boatPosition.x, height, boatPosition.z);
+    return pos;
 }
 
 void Game::update(float dt) {
     //std::cout << "cam view dir: " << camera.Forward << std::endl;
     this->dt = dt;
     wavesTime +=  dt;
+
+    glm::vec3 surfaceNormal;
+    glm::vec3 target = getAverageBoatPositionFromWaves(surfaceNormal);
+    glm::vec3 current = boatPosition;
+    glm::vec3 moveVec = target - current;
+    glm::vec3 moveDir = glm::normalize(moveVec);
+    float distance = glm::length(moveVec);
+    float moveAmount = clamp(distance, 0.0f, BOAT_HEIGHT_LERP_SPEED * dt);
+    boatPosition += moveDir * moveAmount;
+
+    glm::vec3 upMove = surfaceNormal - boatUp;
+    float difference = glm::length(upMove);
+    boatUp += glm::normalize(upMove) * clamp(difference, 0.0f, BOAT_ROTATION_SPEED * dt);
+
+    glm::vec3 forwardYaw = glm::normalize(glm::vec3(0.0f, 0.0f, 1.0f));
+    boatRight = glm::normalize(glm::cross(forwardYaw, boatUp));
+    boatForward = glm::normalize(glm::cross(boatUp, boatRight));
 }
 
 glm::mat4 Game::getProjection() const {
@@ -258,18 +306,18 @@ void Game::render(float dt) {
         glm::scale(glm::mat4(1.0f), glm::vec3(0.015f)) *
         glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
+    glm::mat4 boatRotMat(
+        glm::vec4(boatRight, 0.0f),
+        glm::vec4(boatUp, 0.0f),
+        glm::vec4(-boatForward, 0.0f),
+        glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
+    );
+
     objectShader.use();
     objectShader.setMat4("projection", projection);
     objectShader.setMat4("view", view);
 
-    glm::vec3 target = getBoatPositionFromWaves();
-    glm::vec3 current = boatPosition;
-    glm::vec3 moveVec = target - current;
-    glm::vec3 moveDir = glm::normalize(moveVec);
-    float distance = glm::length(moveVec);
-    float moveAmount = clamp(distance, 0.0f, BOAT_HEIGHT_LERP_SPEED * dt);
-    boatPosition += moveDir * moveAmount;
-    objectShader.setMat4("model", glm::translate(glm::mat4(1.0f), boatPosition) * boatToWorld);
+    objectShader.setMat4("model", glm::translate(glm::mat4(1.0f), boatPosition) * boatRotMat * boatToWorld);
 
     objectShader.setVec3("viewPos", camera.Position);
     objectShader.setVec3("dirLight.direction", glm::vec3(-0.486897f, -0.0627906f, 0.8712f));

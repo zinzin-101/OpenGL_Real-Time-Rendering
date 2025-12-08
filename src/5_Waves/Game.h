@@ -33,6 +33,9 @@ const glm::vec3 WAVES_DIRECTIONS[4] = { glm::vec3(1.0f, 0.0f, 1.0f), glm::vec3(0
 const float WAVES_LENGTHS[4] = { 20.0f, 10.0f, 5.0f, 2.5f };
 const float BOAT_HEIGHT_DAMPING_FACTOR = 0.9f;
 const float BOAT_HEIGHT_LERP_SPEED = 5.0f;
+const float BOAT_ROTATION_SPEED = 0.05f;
+const unsigned int WAVES_SAMPLE_GRID_SIZE = 5;
+const float WAVES_SAMPLE_SPACING = 0.25f;
 
 // Player settings
 const float FOV = 60;
@@ -73,18 +76,11 @@ class Game {
 
 		Model boatModel;
 		glm::vec3 boatPosition;
-
-		//std::vector<Object> objects;
-		//std::vector<BoxCollider> colliders;
-		//std::vector<Physics> physics;
-
-		//std::priority_queue<RenderingObject, std::vector<RenderingObject>, RenderComparator> opacityRenderQueue;
+		glm::vec3 boatForward;
+		glm::vec3 boatRight;
+		glm::vec3 boatUp;
 
 		float dt;
-
-		bool showCollider;
-
-		//int playerId;
 
 		Camera camera;
 		
@@ -100,17 +96,8 @@ class Game {
 		void initColliderOutline();
 		void init();
 
-		glm::vec3 getBoatPositionFromWaves();
-
-		//Object& getNewObject();
-		//Object& getNewObjectWithCollider();
-		//Object& getObjectById(int id);
-		//std::vector<BoxCollider*> getCollidersById(int id);
-		//std::vector<Physics*> getPhysicsById(int id);
-
-
-		//bool isColliding(const BoxCollider& c1, const BoxCollider& c2);
-		//void drawCollider(const BoxCollider& collider);
+		glm::vec3 getBoatPositionFromWaves(glm::vec3 position, glm::vec3& normal);
+		glm::vec3 getAverageBoatPositionFromWaves(glm::vec3& normal);
 
 		glm::mat4 getProjection() const;
 
@@ -120,15 +107,6 @@ class Game {
 		glm::vec3 getVelocity(Physics& phys, float dt);
 		void computePhysics(float dt);
 		
-		//glm::vec3 getRotatedVector(glm::vec3 v, glm::vec3 axis, float deg);
-		//void rotateObject(Object& obj, glm::vec3 axis, float deg);
-
-		//void rotateEveryThing(glm::vec3 axis, float deg);
-		//void rotatePlayerPaddle(glm::vec3 axis, float deg);
-
-		//void handleBallBounce(Object& ball, Object& wall, BoxCollider& wallCol);
-		//void handlePaddleBounce(Object& ball, Object& paddle);
-
 	public:
 		Game();
 		unsigned int getCubeMapTexture(std::string cubeMapPath[]);
