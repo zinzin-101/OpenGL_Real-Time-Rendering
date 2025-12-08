@@ -245,24 +245,29 @@ glm::vec3 Game::getAverageBoatPositionFromWaves(glm::vec3& normal) {
     glm::vec3 sum = glm::vec3(0.0f);
     int sampleCount = 0;
 
+    glm::vec3 normalSum = glm::vec3(0.0f);
     glm::vec3 tempNormal;
-    sum += getBoatPositionFromWaves(boatPosition, tempNormal);
+    //sum += getBoatPositionFromWaves(boatPosition, tempNormal);
+    sum += getBoatPositionFromWaves(boatPosition, normal);
+    normalSum += tempNormal;
     sampleCount++;
-    normal = tempNormal;
     
     float startingOffset = -WAVES_SAMPLE_SPACING * ((float)WAVES_SAMPLE_GRID_SIZE / 2.0f);
     for (int i = 0; i < WAVES_SAMPLE_GRID_SIZE; i++) {
         for (int j = 0; j < WAVES_SAMPLE_GRID_SIZE; j++) {
-            float x = startingOffset + WAVES_SAMPLE_SPACING * (float)(i + 1) + boatPosition.x;
-            float z = startingOffset + WAVES_SAMPLE_SPACING * (float)(j + 1) + boatPosition.z;
+            float x = startingOffset + WAVES_SAMPLE_SPACING * (float)i + boatPosition.x;
+            float z = startingOffset + WAVES_SAMPLE_SPACING * (float)j + boatPosition.z;
             glm::vec3 tempPos = glm::vec3(x, 0.0f, z);
             sum += getBoatPositionFromWaves(tempPos, tempNormal);
+            normalSum += tempNormal;
             sampleCount++;
         }
     }
 
     float height = sum.y / (float)sampleCount;
     glm::vec3 pos = glm::vec3(boatPosition.x, height, boatPosition.z);
+    //normal = glm::normalize(tempNormal / (float)sampleCount); // avg normal
+
     return pos;
 }
 
