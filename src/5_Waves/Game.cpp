@@ -262,7 +262,14 @@ void Game::render(float dt) {
     objectShader.setMat4("projection", projection);
     objectShader.setMat4("view", view);
 
-    objectShader.setMat4("model", glm::translate(glm::mat4(1.0f), getBoatPositionFromWaves()) * boatToWorld);
+    glm::vec3 target = getBoatPositionFromWaves();
+    glm::vec3 current = boatPosition;
+    glm::vec3 moveVec = target - current;
+    glm::vec3 moveDir = glm::normalize(moveVec);
+    float distance = glm::length(moveVec);
+    float moveAmount = clamp(distance, 0.0f, BOAT_HEIGHT_LERP_SPEED * dt);
+    boatPosition += moveDir * moveAmount;
+    objectShader.setMat4("model", glm::translate(glm::mat4(1.0f), boatPosition) * boatToWorld);
 
     objectShader.setVec3("viewPos", camera.Position);
     objectShader.setVec3("dirLight.direction", glm::vec3(-0.486897f, -0.0627906f, 0.8712f));

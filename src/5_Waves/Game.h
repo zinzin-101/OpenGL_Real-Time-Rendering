@@ -32,6 +32,7 @@ const float WAVES_AMPLITUDES[4] = { 2.0f, 2.0f, 0.5f, 0.25f };
 const glm::vec3 WAVES_DIRECTIONS[4] = { glm::vec3(1.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.f), glm::vec3(-1.0f, 0.0f, -0.8f) };
 const float WAVES_LENGTHS[4] = { 20.0f, 10.0f, 5.0f, 2.5f };
 const float BOAT_HEIGHT_DAMPING_FACTOR = 0.9f;
+const float BOAT_HEIGHT_LERP_SPEED = 5.0f;
 
 // Player settings
 const float FOV = 60;
