@@ -38,15 +38,18 @@ const float BOAT_ROTATION_SPEED = 0.125f;
 const unsigned int WAVES_SAMPLE_GRID_SIZE = 5;
 const float WAVES_SAMPLE_SPACING = 0.25f;
 
-const float CAM_LERP_SPEED = 10.0f;
-const float MAX_CAM_DISTANCE = 125.0f;
-const float MIN_CAM_DISTANCE = 2.0f;
-const float DEFAULT_CAM_DISTANCE = (MAX_CAM_DISTANCE - MIN_CAM_DISTANCE) * 0.5f + MIN_CAM_DISTANCE;
 
 // Player settings
 const float FOV = 60;
 const float FREE_CAM_FAST_MOVE_SPEED = 50;
 const float FREE_CAM_MOVE_SPEED = 10;
+const float CAM_LERP_SPEED = 10.0f;
+const float MAX_CAM_DISTANCE = 125.0f;
+const float MIN_CAM_DISTANCE = 2.0f;
+const float DEFAULT_CAM_DISTANCE = (MAX_CAM_DISTANCE - MIN_CAM_DISTANCE) * 0.5f + MIN_CAM_DISTANCE;
+const float BOAT_TURN_RATE = 0.5f;
+const float BOAT_SPEED = 10.0f;
+const float BOAT_DRAG = 5.0f;
 
 struct BoxCollider {
 	BoxCollider(): ownerId(-1), offset(0.0f), size(1.0f) {}
@@ -86,6 +89,9 @@ class Game {
 		glm::vec3 boatRight;
 		glm::vec3 boatUp;
 
+		glm::vec3 currentBoatBearing;
+		float boatSpeed;
+
 		float dt;
 
 		Camera freeCamera;
@@ -110,6 +116,8 @@ class Game {
 
 		glm::vec3 getBoatPositionFromWaves(glm::vec3 position, glm::vec3& normal);
 		glm::vec3 getAverageBoatPositionFromWaves(glm::vec3& normal);
+
+		void moveBoat(glm::vec3 direction);
 
 		glm::mat4 getProjection() const;
 

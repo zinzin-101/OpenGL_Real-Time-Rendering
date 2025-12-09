@@ -202,12 +202,17 @@ void Game::init() {
 
     freeCamera.Position = glm::vec3(0.0f, 0.0f, 0.0f);
     boatCamera.Position = boatPosition;
+    boatCamera.currentLerpPosition = boatCamera.Position;
     boatCamera.LerpSpeed = CAM_LERP_SPEED;
     boatCamera.UseLerp = true;
     boatCameraDistance = DEFAULT_CAM_DISTANCE;
     boatCameraHeight = 0.0f;
 
     currentCamera = &boatCamera;
+
+    currentBoatBearing = glm::vec3(0.0f, 0.0f, 1.0f);
+
+    updateBoatCamera();
 }
 
 glm::vec3 Game::getBoatPositionFromWaves(glm::vec3 position, glm::vec3& normal) {
@@ -286,6 +291,31 @@ glm::vec3 Game::getAverageBoatPositionFromWaves(glm::vec3& normal) {
     return pos;
 }
 
+void Game::moveBoat(glm::vec3 direction) {
+    direction.y = 0.0f;
+    glm::vec3 currentForward = currentBoatBearing;
+    currentForward.y = 0.0f;
+    direction = glm::normalize(direction);
+    currentForward = glm::normalize(currentForward);
+    float dirDot = glm::dot(direction, currentForward);
+    if (dirDot < 0.0f) {
+        float angle = acos(dirDot);
+        glm::vec3 currentRight = glm::normalize(glm::cross(currentForward, glm::vec3(0.0f, 1.0f, 0.0f)));
+        float angleFromRight = acos(glm::dot(currentRight, direction));
+        float angleFromLeft = acos(glm::dot(-currentRight, direction));
+
+        direction = glm::normalize((abs(angleFromRight) < abs(angleFromLeft) ? currentRight : -currentRight));
+    }
+    glm::vec3 v = direction - currentForward;
+    float difference = glm::length(v);
+    glm::vec3 normalized = difference < 0.0001f ? direction : glm::normalize(v);
+    currentForward += normalized * glm::clamp(difference, 0.0f, BOAT_TURN_RATE * dt);
+    currentForward = glm::normalize(currentForward);
+    currentBoatBearing = currentForward;
+    //boatPosition += currentForward * BOAT_SPEED * dt;
+    boatSpeed = BOAT_SPEED;
+}
+
 void Game::update(float dt) {
     //std::cout << "cam view dir: " << camera.Forward << std::endl;
     this->dt = dt;
@@ -309,9 +339,14 @@ void Game::update(float dt) {
     float difference = glm::length(upMove);
     boatUp += glm::normalize(upMove) * clamp(difference, 0.0f, BOAT_ROTATION_SPEED * dt);
 
-    glm::vec3 forwardYaw = glm::normalize(glm::vec3(0.0f, 0.0f, 1.0f));
+    glm::vec3 forwardYaw = glm::normalize(currentBoatBearing);
     boatRight = glm::normalize(glm::cross(forwardYaw, boatUp));
     boatForward = glm::normalize(glm::cross(boatUp, boatRight));
+
+    if (boatSpeed > 0.0f) {
+        boatPosition += glm::normalize(currentBoatBearing) * boatSpeed * dt;
+        boatSpeed -= BOAT_DRAG * dt;
+    }
 }
 
 glm::mat4 Game::getProjection() const {
@@ -328,6 +363,7 @@ void Game::render(float dt) {
     // boat
     glm::mat4 boatToWorld =
         glm::scale(glm::mat4(1.0f), glm::vec3(0.015f)) *
+        glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) *
         glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
     glm::mat4 boatRotMat(
@@ -449,28 +485,30 @@ bool Game::handleKeyDown(GLFWwindow* window, unsigned int key) {
 }
 
 void Game::processKeyboard(GLFWwindow* window, float dt) {
-    glm::vec3 movement = glm::vec3();
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        movement += glm::vec3(0, 0, 1);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        movement += glm::vec3(0, 0, -1);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        movement += glm::vec3(-1, 0, 0);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        movement += glm::vec3(1, 0, 0);
-    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-        movement += glm::vec3(0, 1, 0);
-    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-        movement += glm::vec3(0, -1, 0);
+    if (currentCamera == &freeCamera) {
+        glm::vec3 movement = glm::vec3();
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            movement += glm::vec3(0, 0, 1);
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            movement += glm::vec3(0, 0, -1);
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            movement += glm::vec3(-1, 0, 0);
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            movement += glm::vec3(1, 0, 0);
+        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+            movement += glm::vec3(0, 1, 0);
+        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+            movement += glm::vec3(0, -1, 0);
 
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-        boatPosition.z += 5.0f * dt;
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-        boatPosition.z -= 5.0f * dt;
-    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-        boatPosition.x += 5.0f * dt;
-    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-        boatPosition.x -= 5.0f * dt;
+        movement *= glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ? FREE_CAM_FAST_MOVE_SPEED : FREE_CAM_MOVE_SPEED;
+        freeCamera.ProcessKeyboard(movement, dt);
+    }
+
+    if (currentCamera == &boatCamera) {
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+            moveBoat(currentCamera->Forward);
+        }
+    }
 
     if (handleKeyDown(window, GLFW_KEY_V)) {
         Camera* lastCamera = currentCamera;
@@ -480,8 +518,7 @@ void Game::processKeyboard(GLFWwindow* window, float dt) {
         if (currentCamera == &freeCamera) currentCamera->Position = lastCamera->Position;
     }
         
-    movement *= glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ? FREE_CAM_FAST_MOVE_SPEED : FREE_CAM_MOVE_SPEED;
-    if (currentCamera == &freeCamera) freeCamera.ProcessKeyboard(movement, dt);
+
 }
 
 ostream& operator<<(ostream& out, const glm::vec3& v) {
