@@ -38,6 +38,11 @@ const float BOAT_ROTATION_SPEED = 0.125f;
 const unsigned int WAVES_SAMPLE_GRID_SIZE = 5;
 const float WAVES_SAMPLE_SPACING = 0.25f;
 
+const float CAM_LERP_SPEED = 10.0f;
+const float MAX_CAM_DISTANCE = 125.0f;
+const float MIN_CAM_DISTANCE = 2.0f;
+const float DEFAULT_CAM_DISTANCE = (MAX_CAM_DISTANCE - MIN_CAM_DISTANCE) * 0.5f + MIN_CAM_DISTANCE;
+
 // Player settings
 const float FOV = 60;
 const float FREE_CAM_FAST_MOVE_SPEED = 50;
@@ -83,7 +88,13 @@ class Game {
 
 		float dt;
 
-		Camera camera;
+		Camera freeCamera;
+		Camera boatCamera;
+		Camera* currentCamera;
+		float boatCameraDistance;
+		float boatCameraHeight;
+		bool isAdjustingHeight;
+		void updateBoatCamera();
 		
 		std::map<unsigned int, bool> keyDown;
 		bool handleKeyDown(GLFWwindow* window, unsigned int key);

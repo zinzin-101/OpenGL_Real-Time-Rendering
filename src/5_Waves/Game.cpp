@@ -200,7 +200,14 @@ void Game::init() {
     boatRight = glm::vec3(1.0f, 0.0f, 0.0f);
     boatUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
-    camera.Position = glm::vec3(0.0f, 0.0f, 0.0f);
+    freeCamera.Position = glm::vec3(0.0f, 0.0f, 0.0f);
+    boatCamera.Position = boatPosition;
+    boatCamera.LerpSpeed = CAM_LERP_SPEED;
+    boatCamera.UseLerp = true;
+    boatCameraDistance = DEFAULT_CAM_DISTANCE;
+    boatCameraHeight = 0.0f;
+
+    currentCamera = &boatCamera;
 }
 
 glm::vec3 Game::getBoatPositionFromWaves(glm::vec3 position, glm::vec3& normal) {
@@ -284,12 +291,17 @@ void Game::update(float dt) {
     this->dt = dt;
     wavesTime += dt;
 
+    if (currentCamera == &boatCamera) {
+        boatCamera.UpdateLerp(dt);
+        updateBoatCamera();
+    }
+
     glm::vec3 surfaceNormal;
     glm::vec3 target = getAverageBoatPositionFromWaves(surfaceNormal);
     glm::vec3 current = boatPosition;
     glm::vec3 moveVec = target - current;
-    glm::vec3 moveDir = glm::normalize(moveVec);
     float distance = glm::length(moveVec);
+    glm::vec3 moveDir = distance > 0.0001f ? glm::normalize(moveVec) : glm::vec3(0.0f);
     float moveAmount = clamp(distance, 0.0f, BOAT_HEIGHT_LERP_SPEED * dt);
     boatPosition += moveDir * moveAmount;
 
@@ -311,7 +323,7 @@ void Game::render(float dt) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glm::mat4 projection = getProjection();
-    glm::mat4 view = camera.GetViewMatrix();
+    glm::mat4 view = currentCamera->GetViewMatrix();
 
     // boat
     glm::mat4 boatToWorld =
@@ -331,7 +343,7 @@ void Game::render(float dt) {
 
     objectShader.setMat4("model", glm::translate(glm::mat4(1.0f), boatPosition) * boatRotMat * boatToWorld);
 
-    objectShader.setVec3("viewPos", camera.Position);
+    objectShader.setVec3("viewPos", currentCamera->Position);
     objectShader.setVec3("dirLight.direction", glm::vec3(-0.486897f, -0.0627906f, 0.8712f));
     objectShader.setVec3("dirLight.ambient", glm::vec3(0.4f));
     objectShader.setVec3("dirLight.diffuse", glm::vec3(0.6f));
@@ -343,7 +355,7 @@ void Game::render(float dt) {
     skyboxShader.use();
     glm::mat4 skyboxView = glm::mat4(1.0f);
     glm::mat4 skyboxProjection = glm::mat4(1.0f);
-    skyboxView = glm::mat4((glm::mat3)camera.GetViewMatrix());
+    skyboxView = glm::mat4((glm::mat3)currentCamera->GetViewMatrix());
     skyboxProjection = getProjection();
     skyboxShader.setMat4("view", skyboxView);
     skyboxShader.setMat4("projection", skyboxProjection);
@@ -354,7 +366,7 @@ void Game::render(float dt) {
     wavesShader.setMat4("projection", projection);
     wavesShader.setMat4("view", view);
     wavesShader.setMat4("model", glm::mat4(1.0f));
-    wavesShader.setVec3("viewPos", camera.Position);
+    wavesShader.setVec3("viewPos", currentCamera == &freeCamera ? currentCamera->Position : currentCamera->currentLerpPosition);
     wavesShader.setVec3("color", glm::vec3(0.11372549019f, 0.63529411764f, 0.84705882352f));
     wavesShader.setBool("useLighting", true);
     glActiveTexture(GL_TEXTURE0);
@@ -394,20 +406,31 @@ void Game::drawSkybox() {
     glDepthFunc(GL_LESS);
 }
 
+void Game::updateBoatCamera() {
+    glm::vec3 pos = boatPosition - boatCamera.Forward * boatCameraDistance;
+    pos.y += boatCameraHeight;
+    boatCamera.Position = pos;
+}
+
 void Game::processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch) {
-    camera.ProcessMouseMovement(xoffset, yoffset);
+    if (currentCamera == &boatCamera && isAdjustingHeight) {
+        boatCameraHeight += yoffset;
+        return;
+    }
+
+    freeCamera.ProcessMouseMovement(xoffset, yoffset);
+    boatCamera.ProcessMouseMovement(xoffset, yoffset);
 }
 
 void Game::processMouseScroll(float yoffset) {
-
+    if (currentCamera != &boatCamera) return;
+    boatCameraDistance -= yoffset;
+    boatCameraDistance = glm::clamp(boatCameraDistance, MIN_CAM_DISTANCE, MAX_CAM_DISTANCE);
 }
 
 void Game::processMouseButton(int button, int action) {
-    //if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) isMovingPaddle = true;
-    //else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) isMovingPaddle = false;
-
-    //if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) isAdjustingLook = true;
-    //else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) isAdjustingLook = false;
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) isAdjustingHeight = true;
+    else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) isAdjustingHeight = false;
 }
 
 bool Game::handleKeyDown(GLFWwindow* window, unsigned int key) {
@@ -449,8 +472,16 @@ void Game::processKeyboard(GLFWwindow* window, float dt) {
     if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
         boatPosition.x -= 5.0f * dt;
 
+    if (handleKeyDown(window, GLFW_KEY_V)) {
+        Camera* lastCamera = currentCamera;
+        currentCamera = currentCamera == &freeCamera ? &boatCamera : &freeCamera;
+        currentCamera->SetForwardVector(lastCamera->Forward);
+
+        if (currentCamera == &freeCamera) currentCamera->Position = lastCamera->Position;
+    }
+        
     movement *= glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ? FREE_CAM_FAST_MOVE_SPEED : FREE_CAM_MOVE_SPEED;
-    camera.ProcessKeyboard(movement, dt);
+    if (currentCamera == &freeCamera) freeCamera.ProcessKeyboard(movement, dt);
 }
 
 ostream& operator<<(ostream& out, const glm::vec3& v) {

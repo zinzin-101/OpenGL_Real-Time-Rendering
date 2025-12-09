@@ -32,6 +32,9 @@ public:
     glm::vec3 Up;
     glm::vec3 Right;
     glm::vec3 WorldUp;
+
+    glm::vec3 currentLerpPosition;
+
     // euler Angles
     float Yaw;
     float Pitch;
@@ -71,7 +74,6 @@ private:
     // calculates the front vector from the Camera's (updated) Euler Angles
     void updateCameraVectors();
 
-    glm::vec3 currentLerpPosition;
     glm::vec3 currentLerpForward;
     glm::vec3 currentLerpUp;
     glm::vec3 currentLerpRight;
