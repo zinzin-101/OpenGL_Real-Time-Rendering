@@ -38,7 +38,6 @@ const float BOAT_ROTATION_SPEED = 0.125f;
 const unsigned int WAVES_SAMPLE_GRID_SIZE = 5;
 const float WAVES_SAMPLE_SPACING = 0.25f;
 
-
 // Player settings
 const float FOV = 60;
 const float FREE_CAM_FAST_MOVE_SPEED = 50;
