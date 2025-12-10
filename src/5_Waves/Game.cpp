@@ -363,7 +363,9 @@ void Game::update(float dt) {
         updateBoatCamera();
     }
 
-    if (currentCamera->Position.y < 0.0f) currentCamera->Position.y = 0.0f;
+    glm::vec3 temp;
+    glm::vec3 camPosAtWaves = getBoatPositionFromWaves(currentCamera->getPosition(), temp);
+    if (currentCamera->Position.y < camPosAtWaves.y) currentCamera->Position.y = camPosAtWaves.y;
 
     glm::vec3 surfaceNormal;
     glm::vec3 target = getAverageBoatPositionFromWaves(surfaceNormal);
@@ -426,6 +428,9 @@ void Game::render(float dt) {
 
     boatModel.Draw(objectShader);
 
+    //objectShader.setMat4("model", glm::mat4(1.0f));
+    //woodenBoatModel.Draw(objectShader);
+
     // skybox
     skyboxShader.use();
     glm::mat4 skyboxView = glm::mat4(1.0f);
@@ -486,7 +491,7 @@ void Game::render(float dt) {
     flatShader.setMat4("view", view);
     flatShader.setMat4("projection", projection);
     flatShader.setVec3("color", waterColor * 0.4f);
-    drawCube();
+    //drawCube();
 }
 
 void Game::drawSkybox() {
