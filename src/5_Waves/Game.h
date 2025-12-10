@@ -37,6 +37,9 @@ const float BOAT_HEIGHT_LERP_SPEED = 5.0f;
 const float BOAT_ROTATION_SPEED = 0.125f;
 const unsigned int WAVES_SAMPLE_GRID_SIZE = 5;
 const float WAVES_SAMPLE_SPACING = 0.25f;
+const unsigned int MAX_OTHER_BOATS_COUNT = 6;
+const float MIN_OTHER_BOAT_START_DISTANCE_FROM_PLAYER = 50.0f;
+const float MAX_OTHER_BOAT_START_DISTANCE_FROM_PLAYER = 250.0f;
 
 // Player settings
 const float FOV = 60;
@@ -44,19 +47,23 @@ const float FREE_CAM_FAST_MOVE_SPEED = 50;
 const float FREE_CAM_MOVE_SPEED = 10;
 const float CAM_LERP_SPEED = 10.0f;
 const float MAX_CAM_DISTANCE = 125.0f;
-const float MIN_CAM_DISTANCE = 2.0f;
+const float MIN_CAM_DISTANCE = 20.0f;
 const float DEFAULT_CAM_DISTANCE = (MAX_CAM_DISTANCE - MIN_CAM_DISTANCE) * 0.5f + MIN_CAM_DISTANCE;
 const float BOAT_TURN_RATE = 0.5f;
 const float BOAT_SPEED = 10.0f;
 const float BOAT_DRAG = 5.0f;
 
 struct Boat {
+	Boat(): 
+		position(glm::vec3(0.0f)), forward(glm::vec3(0.0f, 0.0f, 1.0f)), right(glm::vec3(1.0f, 0.0f, 0.0f)), up(glm::vec3(0.0f, 1.0f, 0.0f)), 
+		currentBearing(glm::vec3(0.0f, 0.0f, 1.0f)), speed(0.0f), isFlipped(false) {}
 	glm::vec3 position;
 	glm::vec3 forward;
 	glm::vec3 right;
 	glm::vec3 up;
 	glm::vec3 currentBearing;
-	bool 
+	float speed;
+	bool isFlipped;
 };
 
 struct BoxCollider {
@@ -92,6 +99,8 @@ class Game {
 		float wavesTime;
 		glm::vec3 waveDirections[12];
 
+		glm::mat4 boatToWorld;
+
 		Model boatModel;
 		glm::vec3 boatPosition;
 		glm::vec3 boatForward;
@@ -100,6 +109,8 @@ class Game {
 
 		glm::vec3 currentBoatBearing;
 		float boatSpeed;
+
+		std::vector<Boat> otherBoats;
 
 		float dt;
 
@@ -113,6 +124,10 @@ class Game {
 		
 		std::map<unsigned int, bool> keyDown;
 		bool handleKeyDown(GLFWwindow* window, unsigned int key);
+
+		void initOtherBoats();
+		void updateOtherBoats();
+		void renderOtherBoats();
 
 		void initSkybox();
 		void drawSkybox();
@@ -128,8 +143,10 @@ class Game {
 
 		glm::vec3 getBoatPositionFromWaves(glm::vec3 position, glm::vec3& normal);
 		glm::vec3 getAverageBoatPositionFromWaves(glm::vec3& normal);
+		glm::vec3 getAverageBoatPositionFromWaves(glm::vec3 position, glm::vec3& normal);
 
 		void moveBoat(glm::vec3 direction);
+		void moveBoat(Boat& boat, glm::vec3 direction);
 
 		glm::mat4 getProjection() const;
 

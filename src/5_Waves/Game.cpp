@@ -20,6 +20,7 @@ Game::Game() :
     flatShader("flat.vs", "flat.fs"),
     boatModel(FileSystem::getPath("resources/objects/boat/boat.dae"))
 {
+    Random::init();
     init();
 }
 
@@ -63,6 +64,33 @@ unsigned int Game::getCubeMapTexture(std::string cubeMapPath[]) {
     }
 
     return cubeMapTex;
+}
+
+void Game::initOtherBoats() {
+    for (int i = 0; i < MAX_OTHER_BOATS_COUNT; i++) {
+        float x = Random::randFloat(MAX_OTHER_BOAT_START_DISTANCE_FROM_PLAYER) + boatPosition.x;
+        float z = Random::randFloat(MAX_OTHER_BOAT_START_DISTANCE_FROM_PLAYER) + boatPosition.z;
+        glm::vec3 spawnPos = glm::vec3(x, 0.0f, z);
+        glm::vec3 playerPos = boatPosition;
+        playerPos.y = 0.0f;
+        float distance = glm::length(playerPos - spawnPos);
+        while (distance < MIN_OTHER_BOAT_START_DISTANCE_FROM_PLAYER) {
+            x = Random::randFloat(MAX_OTHER_BOAT_START_DISTANCE_FROM_PLAYER) + boatPosition.x;
+            z = Random::randFloat(MAX_OTHER_BOAT_START_DISTANCE_FROM_PLAYER) + boatPosition.z;
+            spawnPos = glm::vec3(x, 0.0f, z);
+            distance = glm::length(playerPos - spawnPos);
+        }
+
+        Boat boat;
+        boat.position = spawnPos;
+        boat.currentBearing = playerPos - spawnPos;
+        boat.currentBearing.y = 0.0f;
+        glm::vec3 forwardYaw = glm::normalize(boat.currentBearing);
+        boat.right = glm::normalize(glm::cross(forwardYaw, glm::vec3(0.0f, 1.0f, 0.0f)));
+        boat.forward = glm::normalize(glm::cross(boat.up, boat.right));
+
+        otherBoats.emplace_back(boat);
+    }
 }
 
 void Game::initSkybox() {
@@ -215,6 +243,13 @@ void Game::init() {
     currentBoatBearing = glm::vec3(0.0f, 0.0f, 1.0f);
 
     updateBoatCamera();
+
+    initOtherBoats();
+
+    boatToWorld =
+        glm::scale(glm::mat4(1.0f), glm::vec3(0.015f)) *
+        glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) *
+        glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 }
 
 void Game::initCube() {
@@ -328,6 +363,35 @@ glm::vec3 Game::getAverageBoatPositionFromWaves(glm::vec3& normal) {
     return pos;
 }
 
+glm::vec3 Game::getAverageBoatPositionFromWaves(glm::vec3 position, glm::vec3& normal) {
+    glm::vec3 sum = glm::vec3(0.0f);
+    int sampleCount = 0;
+
+    glm::vec3 normalSum = glm::vec3(0.0f);
+    glm::vec3 tempNormal;
+    //getBoatPositionFromWaves(boatPosition, normal);
+    //normalSum += tempNormal;
+    //sampleCount++;
+
+    float startingOffset = -WAVES_SAMPLE_SPACING * ((float)(WAVES_SAMPLE_GRID_SIZE - 1) / 2.0f);
+    for (int i = 0; i < WAVES_SAMPLE_GRID_SIZE; i++) {
+        for (int j = 0; j < WAVES_SAMPLE_GRID_SIZE; j++) {
+            float x = startingOffset + WAVES_SAMPLE_SPACING * (float)i + position.x;
+            float z = startingOffset + WAVES_SAMPLE_SPACING * (float)j + position.z;
+            glm::vec3 tempPos = glm::vec3(x, 0.0f, z);
+            sum += getBoatPositionFromWaves(tempPos, tempNormal);
+            normalSum += tempNormal;
+            sampleCount++;
+        }
+    }
+
+    float height = sum.y / (float)sampleCount;
+    glm::vec3 pos = glm::vec3(position.x, height, position.z);
+    normal = glm::normalize(normalSum / (float)sampleCount);
+
+    return pos;
+}
+
 void Game::moveBoat(glm::vec3 direction) {
     direction.y = 0.0f;
     glm::vec3 currentForward = currentBoatBearing;
@@ -351,6 +415,62 @@ void Game::moveBoat(glm::vec3 direction) {
     currentBoatBearing = currentForward;
     //boatPosition += currentForward * BOAT_SPEED * dt;
     boatSpeed = BOAT_SPEED;
+}
+
+void Game::moveBoat(Boat& boat, glm::vec3 direction) {
+    direction.y = 0.0f;
+    glm::vec3 currentForward = boat.currentBearing;
+    currentForward.y = 0.0f;
+    direction = glm::normalize(direction);
+    currentForward = glm::normalize(boat.forward);
+    float dirDot = glm::dot(direction, currentForward);
+    if (dirDot < 0.0f) {
+        float angle = acos(dirDot);
+        glm::vec3 currentRight = glm::normalize(glm::cross(currentForward, glm::vec3(0.0f, 1.0f, 0.0f)));
+        float angleFromRight = acos(glm::dot(currentRight, direction));
+        float angleFromLeft = acos(glm::dot(-currentRight, direction));
+
+        direction = glm::normalize((abs(angleFromRight) < abs(angleFromLeft) ? currentRight : -currentRight));
+    }
+    glm::vec3 v = direction - currentForward;
+    float difference = glm::length(v);
+    glm::vec3 normalized = difference < 0.0001f ? direction : glm::normalize(v);
+    currentForward += normalized * glm::clamp(difference, 0.0f, BOAT_TURN_RATE * dt);
+    currentForward = glm::normalize(currentForward);
+    boat.currentBearing = currentForward;
+    boat.speed = BOAT_SPEED;
+}
+
+void Game::updateOtherBoats() {
+    for (Boat& boat : otherBoats) {
+        glm::vec3 surfaceNormal;
+        glm::vec3 target = getAverageBoatPositionFromWaves(boat.position, surfaceNormal);
+        glm::vec3 current = boat.position;
+        glm::vec3 moveVec = target - current;
+        float distance = glm::length(moveVec);
+        glm::vec3 moveDir = distance > 0.0001f ? glm::normalize(moveVec) : glm::vec3(0.0f);
+        float moveAmount = clamp(distance, 0.0f, BOAT_HEIGHT_LERP_SPEED * dt);
+        boat.position += moveDir * moveAmount;
+
+        glm::vec3 upMove = surfaceNormal - boat.up;
+        float difference = glm::length(upMove);
+        boat.up += glm::normalize(upMove) * clamp(difference, 0.0f, BOAT_ROTATION_SPEED * dt);
+
+        glm::vec3 forwardYaw = glm::normalize(boat.currentBearing);
+        boat.right = glm::normalize(glm::cross(forwardYaw, boat.up));
+        boat.forward = glm::normalize(glm::cross(boat.up , boat.right));
+
+        if (boat.speed > 0.0f) {
+            boat.position += glm::normalize(boat.currentBearing) * boat.speed * dt;
+            boat.speed -= BOAT_DRAG * dt;
+        }
+
+        glm::vec3 toPlayer = boatPosition - boat.position;
+        float distanceFromPlayer = glm::length(toPlayer);
+        if (distanceFromPlayer > 50.0f) {
+            moveBoat(boat, toPlayer);
+        }
+    }
 }
 
 void Game::update(float dt) {
@@ -388,10 +508,41 @@ void Game::update(float dt) {
         boatPosition += glm::normalize(currentBoatBearing) * boatSpeed * dt;
         boatSpeed -= BOAT_DRAG * dt;
     }
+
+    updateOtherBoats();
 }
 
 glm::mat4 Game::getProjection() const {
     return glm::perspective(glm::radians(FOV), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
+}
+
+void Game::renderOtherBoats() {
+    objectShader.use();
+    for (Boat& boat : otherBoats) {
+        glm::mat4 projection = getProjection();
+        glm::mat4 view = currentCamera->GetViewMatrix();
+
+
+        glm::mat4 boatRotMat(
+            glm::vec4(boat.right, 0.0f),
+            glm::vec4(boat.up, 0.0f),
+            glm::vec4(-boat.forward, 0.0f),
+            glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
+        );
+
+        objectShader.setMat4("projection", projection);
+        objectShader.setMat4("view", view);
+
+        objectShader.setMat4("model", glm::translate(glm::mat4(1.0f), boat.position) * boatRotMat * boatToWorld);
+
+        objectShader.setVec3("viewPos", currentCamera->getPosition());
+        objectShader.setVec3("dirLight.direction", glm::vec3(-0.486897f, -0.0627906f, 0.8712f));
+        objectShader.setVec3("dirLight.ambient", glm::vec3(0.4f));
+        objectShader.setVec3("dirLight.diffuse", glm::vec3(0.6f));
+        objectShader.setVec3("dirLight.specular", glm::vec3(0.9f));
+
+        boatModel.Draw(objectShader);
+    }
 }
 
 void Game::render(float dt) {
@@ -402,11 +553,6 @@ void Game::render(float dt) {
     glm::mat4 view = currentCamera->GetViewMatrix();
 
     // boat
-    glm::mat4 boatToWorld =
-        glm::scale(glm::mat4(1.0f), glm::vec3(0.015f)) *
-        glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) *
-        glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-
     glm::mat4 boatRotMat(
         glm::vec4(boatRight, 0.0f),
         glm::vec4(boatUp, 0.0f),
@@ -427,6 +573,8 @@ void Game::render(float dt) {
     objectShader.setVec3("dirLight.specular", glm::vec3(0.9f));
 
     boatModel.Draw(objectShader);
+
+    renderOtherBoats();
 
     //objectShader.setMat4("model", glm::mat4(1.0f));
     //woodenBoatModel.Draw(objectShader);
