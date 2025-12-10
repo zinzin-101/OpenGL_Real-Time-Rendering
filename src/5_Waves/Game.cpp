@@ -17,6 +17,7 @@ Game::Game() :
     outlineShader("collider_outline.vs", "collider_outline.fs"),
     skyboxShader("skybox.vs", "skybox.fs"),
     objectShader("vertex.vs", "fragment.fs"),
+    flatShader("flat.vs", "flat.fs"),
     boatModel(FileSystem::getPath("resources/objects/boat/boat.dae"))
 {
     init();
@@ -195,6 +196,8 @@ void Game::init() {
     
     initWaves();
 
+    initCube();
+
     boatPosition = glm::vec3(0.0f, 0.0f, 0.0f);
     boatForward = glm::vec3(0.0f, 0.0f, 1.0f);
     boatRight = glm::vec3(1.0f, 0.0f, 0.0f);
@@ -212,6 +215,41 @@ void Game::init() {
     currentBoatBearing = glm::vec3(0.0f, 0.0f, 1.0f);
 
     updateBoatCamera();
+}
+
+void Game::initCube() {
+    // bind VAO
+    glGenVertexArrays(1, &cubeVAO);
+    glBindVertexArray(cubeVAO);
+
+    // generate VBO
+    glGenBuffers(1, &cubeVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        8 * sizeof(float) * 3,
+        CUBE_VERTICES,
+        GL_STATIC_DRAW
+    );
+
+    // positions
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // generate EBO
+    glGenBuffers(1, &cubeEBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeEBO);
+    glBufferData(
+        GL_ELEMENT_ARRAY_BUFFER,
+        36 * sizeof(unsigned int),
+        SKYBOX_INDICES,
+        GL_STATIC_DRAW
+    );
+}
+
+void Game::drawCube() {
+    glBindVertexArray(cubeVAO);
+    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 }
 
 glm::vec3 Game::getBoatPositionFromWaves(glm::vec3 position, glm::vec3& normal) {
@@ -325,6 +363,8 @@ void Game::update(float dt) {
         updateBoatCamera();
     }
 
+    if (currentCamera->Position.y < 0.0f) currentCamera->Position.y = 0.0f;
+
     glm::vec3 surfaceNormal;
     glm::vec3 target = getAverageBoatPositionFromWaves(surfaceNormal);
     glm::vec3 current = boatPosition;
@@ -396,6 +436,8 @@ void Game::render(float dt) {
     skyboxShader.setMat4("projection", skyboxProjection);
     drawSkybox();
 
+    glm::vec3 waterColor = glm::vec3(0.11372549019f, 0.63529411764f, 0.84705882352f);
+
     wavesShader.use();
     // view/projection transformations
     glm::vec3 camPos = currentCamera->getPosition();
@@ -404,7 +446,7 @@ void Game::render(float dt) {
     wavesShader.setMat4("view", view);
     wavesShader.setMat4("model", glm::mat4(1.0f) * glm::translate(glm::mat4(1.0f), glm::vec3(camPos.x, 0.0f, camPos.z)));
     wavesShader.setVec3("viewPos", currentCamera->getPosition());
-    wavesShader.setVec3("color", glm::vec3(0.11372549019f, 0.63529411764f, 0.84705882352f));
+    wavesShader.setVec3("color", waterColor);
     wavesShader.setBool("useLighting", true);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture);
@@ -431,6 +473,15 @@ void Game::render(float dt) {
     wavesShader.setFloat("shininess", 16.0f);
 
     drawWaves();
+
+    flatShader.use();
+    flatShader.setMat4("model", 
+        glm::translate(glm::mat4(1.0), glm::vec3(camPos.x, -50.0f, camPos.z)) *
+        glm::scale(glm::mat4(1.0f), glm::vec3(100000.0f, 0.1f, 100000.0f)));
+    flatShader.setMat4("view", view);
+    flatShader.setMat4("projection", projection);
+    flatShader.setVec3("color", waterColor * 0.4f);
+    drawCube();
 }
 
 void Game::drawSkybox() {

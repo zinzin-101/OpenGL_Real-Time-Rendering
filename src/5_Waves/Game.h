@@ -70,8 +70,11 @@ class Game {
 		Shader outlineShader;
 		Shader skyboxShader;
 		Shader objectShader;
+		Shader flatShader;
 
 		//std::map<Model*, glm::mat4> modelToWorld;
+
+		GLuint cubeVAO, cubeVBO, cubeEBO;
 
 		unsigned int cubeMapTexture;
 		GLuint skyboxVAO, skyboxVBO, skyboxEBO;
@@ -112,6 +115,9 @@ class Game {
 
 		void initColliderOutline();
 		void init();
+
+		void initCube();
+		void drawCube();
 
 		glm::vec3 getBoatPositionFromWaves(glm::vec3 position, glm::vec3& normal);
 		glm::vec3 getAverageBoatPositionFromWaves(glm::vec3& normal);
