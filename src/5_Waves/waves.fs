@@ -55,11 +55,16 @@ uniform bool useLighting;
 uniform samplerCube skybox;
 uniform float skyboxBlendAmount;
 
+uniform bool showFoam;
+uniform float foamThreshold;
+uniform float foamIntensity;
+
 vec3 currentColor;
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
+float GetFoam(vec3 normal);
 
 void main()
 {
@@ -77,17 +82,21 @@ void main()
     vec3 reflection = reflect(incidence , normalize(Normal));
     vec4 skyColor = texture(skybox, reflection); 
 
-
     vec4 blendedColor = (1.0 - skyboxBlendAmount) * vec4(color, 1.0) + skyColor * skyboxBlendAmount;
 
     currentColor = blendedColor.rgb;
+    if (showFoam){
+        float foam = GetFoam(normalize(Normal));
+        currentColor = (1.0 - foam) * currentColor + vec3(1.0) * foam;
+    }
 
     if (useLighting){
         vec3 result =  vec3(0.0);
         for(int i = 0; i < NUM_OF_POINT_LIGHTS; i++)
             //result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
         //result += CalcSpotLight(spotLight, norm, FragPos, viewDir); 
-        result += CalcDirLight(dirLight, norm, viewDir); 
+        result += CalcDirLight(dirLight, norm, viewDir);
+
         FragColor = vec4(result, 1.0);
     }
     else{
@@ -165,4 +174,11 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
     diffuse *= attenuation * intensity;
     specular *= attenuation * intensity;
     return (ambient + diffuse + specular);
+}
+
+float GetFoam(vec3 normal)
+{
+    float slope = 1.0 - dot(normal, vec3(0.0, 1.0, 0.0));
+    float foam = smoothstep(foamThreshold, 1.0, slope) * foamIntensity;
+    return foam;
 }

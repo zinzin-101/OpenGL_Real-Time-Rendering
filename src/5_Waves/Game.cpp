@@ -437,6 +437,7 @@ void Game::render(float dt) {
     drawSkybox();
 
     glm::vec3 waterColor = glm::vec3(0.11372549019f, 0.63529411764f, 0.84705882352f);
+    //glm::vec3 waterColor = glm::vec3(1,1,1);
 
     wavesShader.use();
     // view/projection transformations
@@ -471,6 +472,10 @@ void Game::render(float dt) {
     wavesShader.setVec3("dirLight.diffuse", glm::vec3(0.6f));
     wavesShader.setVec3("dirLight.specular", glm::vec3(0.9f));
     wavesShader.setFloat("shininess", 16.0f);
+
+    wavesShader.setFloat("foamThreshold", 0.0001f);
+    wavesShader.setFloat("foamIntensity", 1.0f);
+    wavesShader.setBool("showFoam", true);
 
     drawWaves();
 
