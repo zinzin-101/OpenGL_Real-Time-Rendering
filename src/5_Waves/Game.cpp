@@ -202,7 +202,6 @@ void Game::init() {
 
     freeCamera.Position = glm::vec3(0.0f, 0.0f, 0.0f);
     boatCamera.Position = boatPosition;
-    boatCamera.currentLerpPosition = boatCamera.Position;
     boatCamera.LerpSpeed = CAM_LERP_SPEED;
     boatCamera.UseLerp = true;
     boatCameraDistance = DEFAULT_CAM_DISTANCE;
@@ -399,10 +398,12 @@ void Game::render(float dt) {
 
     wavesShader.use();
     // view/projection transformations
+    glm::vec3 camPos = currentCamera->getPosition();
+    wavesShader.setVec3("camOffset", camPos);
     wavesShader.setMat4("projection", projection);
     wavesShader.setMat4("view", view);
-    wavesShader.setMat4("model", glm::mat4(1.0f));
-    wavesShader.setVec3("viewPos", currentCamera == &freeCamera ? currentCamera->Position : currentCamera->currentLerpPosition);
+    wavesShader.setMat4("model", glm::mat4(1.0f) * glm::translate(glm::mat4(1.0f), glm::vec3(camPos.x, 0.0f, camPos.z)));
+    wavesShader.setVec3("viewPos", currentCamera->getPosition());
     wavesShader.setVec3("color", glm::vec3(0.11372549019f, 0.63529411764f, 0.84705882352f));
     wavesShader.setBool("useLighting", true);
     glActiveTexture(GL_TEXTURE0);

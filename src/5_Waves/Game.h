@@ -24,7 +24,7 @@ const double MIN_TIME_PER_FRAME = 1.0 / (double)TARGET_FPS;
 const double PI = 3.14159265358979323846;
 
 // Game settings
-const unsigned int WAVES_VERTS_WIDTH_NUM = 1000;
+const unsigned int WAVES_VERTS_WIDTH_NUM = 1200;
 const float WAVES_VERTS_SCALE = 0.25f;
 const float WAVES_SPEEDS[4] = { 3.0f, 5.0f, 3.0f, 6.0f };
 const float WAVES_AMPLITUDES[4] = { 2.0f, 2.0f, 0.5f, 0.25f };

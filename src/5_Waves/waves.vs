@@ -4,6 +4,8 @@ layout (location = 0) in vec3 aPos;
 out vec3 FragPos;
 out vec3 Normal;
 
+uniform vec3 camOffset;
+
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
@@ -19,7 +21,9 @@ uniform float speed[NUM_OF_SINE_WAVES];
 void main()
 {
     vec3 pos = aPos;
-    
+    pos.x += camOffset.x;
+    pos.z += camOffset.z;
+
     float height = 0.0;
     float dx = 0.0;
     float dz = 0.0;
@@ -48,8 +52,9 @@ void main()
 
     vec3 normal = normalize(vec3(-dx, 1.0, -dz));
     pos.y = height;
-
-    FragPos = vec3(model * vec4(pos, 1.0));
+    vec3 realPos = aPos;
+    realPos.y = pos.y;
+    FragPos = vec3(model * vec4(realPos, 1.0));
     //Normal = mat3(transpose(inverse(model))) * aNormal;
     Normal = mat3(transpose(inverse(model))) * normal;
     //Normal = mat3(transpose(inverse(model))) * vec3(0,1,0);
