@@ -378,7 +378,7 @@ void Game::render(float dt) {
 
     objectShader.setMat4("model", glm::translate(glm::mat4(1.0f), boatPosition) * boatRotMat * boatToWorld);
 
-    objectShader.setVec3("viewPos", currentCamera->Position);
+    objectShader.setVec3("viewPos", currentCamera->getPosition());
     objectShader.setVec3("dirLight.direction", glm::vec3(-0.486897f, -0.0627906f, 0.8712f));
     objectShader.setVec3("dirLight.ambient", glm::vec3(0.4f));
     objectShader.setVec3("dirLight.diffuse", glm::vec3(0.6f));
@@ -451,7 +451,7 @@ void Game::updateBoatCamera() {
 
 void Game::processMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch) {
     if (currentCamera == &boatCamera && isAdjustingHeight) {
-        boatCameraHeight += yoffset;
+        boatCameraHeight += yoffset * dt;
         return;
     }
 
@@ -471,9 +471,9 @@ void Game::processMouseButton(int button, int action) {
 }
 
 bool Game::handleKeyDown(GLFWwindow* window, unsigned int key) {
-    if (keyDown.count(key) == 0) { // first press
-        keyDown[key] = true;
-        return true;
+    if (keyDown.count(key) == 0) { // for initialization
+        keyDown[key] = false;
+        return false;
     }
 
     if (glfwGetKey(window, key) == GLFW_PRESS && !keyDown.at(key)) {
@@ -506,9 +506,16 @@ void Game::processKeyboard(GLFWwindow* window, float dt) {
     }
 
     if (currentCamera == &boatCamera) {
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-            moveBoat(currentCamera->Forward);
-        }
+        glm::vec3 movement = glm::vec3();
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            movement += currentCamera->Forward;
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            movement -= currentCamera->Forward;
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            movement -= currentCamera->Right;
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            movement += currentCamera->Right;
+        if (glm::length(movement) > 0.0f) moveBoat(movement);
     }
 
     if (handleKeyDown(window, GLFW_KEY_V)) {
