@@ -38,8 +38,14 @@ const float BOAT_ROTATION_SPEED = 0.125f;
 const unsigned int WAVES_SAMPLE_GRID_SIZE = 5;
 const float WAVES_SAMPLE_SPACING = 0.25f;
 const unsigned int MAX_OTHER_BOATS_COUNT = 6;
+const unsigned int MAX_OTHER_BOATS_FOLLOW_COUNT = 3;
 const float MIN_OTHER_BOAT_START_DISTANCE_FROM_PLAYER = 50.0f;
 const float MAX_OTHER_BOAT_START_DISTANCE_FROM_PLAYER = 250.0f;
+const float MAX_OTHER_BOAT_DISTANCE_TO_CHANGE_DIRECTION = 400.0f;
+const float MIN_DISTANCE_BETWEEN_OTHER_BOATS = 45.0f;
+const float OTHER_BOAT_SPEED = 8.0f;
+const float BOAT_COLLISION_DISTANCE = 28.0f;
+const float BOAT_FLIP_SPEED = 1.0f;
 
 // Player settings
 const float FOV = 60;
@@ -50,13 +56,13 @@ const float MAX_CAM_DISTANCE = 125.0f;
 const float MIN_CAM_DISTANCE = 20.0f;
 const float DEFAULT_CAM_DISTANCE = (MAX_CAM_DISTANCE - MIN_CAM_DISTANCE) * 0.5f + MIN_CAM_DISTANCE;
 const float BOAT_TURN_RATE = 0.5f;
-const float BOAT_SPEED = 10.0f;
+const float BOAT_SPEED = 12.0f;
 const float BOAT_DRAG = 5.0f;
 
 struct Boat {
 	Boat(): 
 		position(glm::vec3(0.0f)), forward(glm::vec3(0.0f, 0.0f, 1.0f)), right(glm::vec3(1.0f, 0.0f, 0.0f)), up(glm::vec3(0.0f, 1.0f, 0.0f)), 
-		currentBearing(glm::vec3(0.0f, 0.0f, 1.0f)), speed(0.0f), isFlipped(false) {}
+		currentBearing(glm::vec3(0.0f, 0.0f, 1.0f)), speed(0.0f), isFlipped(false), t_flip(0.0f), followPlayer(false), destDir(glm::vec3(0.0f, 0.0f, 1.0f)) {}
 	glm::vec3 position;
 	glm::vec3 forward;
 	glm::vec3 right;
@@ -64,6 +70,9 @@ struct Boat {
 	glm::vec3 currentBearing;
 	float speed;
 	bool isFlipped;
+	float t_flip;
+	bool followPlayer;
+	glm::vec3 destDir;
 };
 
 struct BoxCollider {

@@ -89,6 +89,16 @@ void Game::initOtherBoats() {
         boat.right = glm::normalize(glm::cross(forwardYaw, glm::vec3(0.0f, 1.0f, 0.0f)));
         boat.forward = glm::normalize(glm::cross(boat.up, boat.right));
 
+        if (i < MAX_OTHER_BOATS_FOLLOW_COUNT) boat.followPlayer = true;
+        else {
+            glm::vec3 destDir = glm::vec3(
+                Random::randFloat(1.0f),
+                0.0f,
+                Random::randFloat(1.0f)
+            );
+            boat.destDir = destDir;
+        }
+
         otherBoats.emplace_back(boat);
     }
 }
@@ -213,8 +223,6 @@ void Game::drawWaves() {
 }
 
 void Game::init() {
-    Random::init();
-
     //GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
     //const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
     //int refreshRate = mode->refreshRate;
@@ -465,11 +473,51 @@ void Game::updateOtherBoats() {
             boat.speed -= BOAT_DRAG * dt;
         }
 
-        glm::vec3 toPlayer = boatPosition - boat.position;
+        if (boat.isFlipped && boat.t_flip < 1.0f) boat.t_flip += BOAT_FLIP_SPEED * dt;
+        else if (boat.isFlipped && boat.t_flip > 1.0f) boat.t_flip = 1.0f;
+    }
+
+    for (int i = 0; i < MAX_OTHER_BOATS_COUNT; i++) {
+        Boat& current = otherBoats[i];
+
+        if (current.isFlipped) continue;
+
+        glm::vec3 toPlayer = boatPosition - current.position;
         float distanceFromPlayer = glm::length(toPlayer);
-        if (distanceFromPlayer > 50.0f) {
-            moveBoat(boat, toPlayer);
+
+        //float playerDot = glm::dot(glm::normalize(toPlayer), glm::normalize(current.forward));
+        //if (distanceFromPlayer < BOAT_COLLISION_DISTANCE && abs(playerDot) < 0.1f) {
+        //    current.isFlipped = true;
+        //    continue;
+        //}
+
+        if (distanceFromPlayer < 50.0f) continue;
+
+        bool canMoveTowardPlayer = true;
+        for (int j = 0; j < MAX_OTHER_BOATS_COUNT; j++) {
+            if (i == j) continue;
+
+            Boat& other = otherBoats[j];
+            glm::vec3 toOther = other.position - current.position;
+            float distance = glm::length(toOther);
+            if (distance < MIN_DISTANCE_BETWEEN_OTHER_BOATS) {
+                moveBoat(current, -toOther);
+                canMoveTowardPlayer = false;
+                break;
+            }
         }
+
+        if (!current.followPlayer) {
+            if (distanceFromPlayer > MAX_OTHER_BOAT_DISTANCE_TO_CHANGE_DIRECTION) {
+                current.destDir = toPlayer;
+                current.destDir.y = 0.0f;
+            }
+
+            moveBoat(current, current.destDir);
+            continue;
+        }
+
+        if (canMoveTowardPlayer) moveBoat(current, toPlayer);
     }
 }
 
@@ -522,18 +570,21 @@ void Game::renderOtherBoats() {
         glm::mat4 projection = getProjection();
         glm::mat4 view = currentCamera->GetViewMatrix();
 
-
         glm::mat4 boatRotMat(
             glm::vec4(boat.right, 0.0f),
             glm::vec4(boat.up, 0.0f),
             glm::vec4(-boat.forward, 0.0f),
             glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
         );
+        
+        glm::mat4 boatFlipMat = 
+            glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, (boat.isFlipped ? 3.0f : 0.0f), 0.0f)) *
+            glm::rotate(glm::mat4(1.0f), glm::radians(180.0f * boat.t_flip), boat.forward);
 
         objectShader.setMat4("projection", projection);
         objectShader.setMat4("view", view);
 
-        objectShader.setMat4("model", glm::translate(glm::mat4(1.0f), boat.position) * boatRotMat * boatToWorld);
+        objectShader.setMat4("model", glm::translate(glm::mat4(1.0f), boat.position) * boatRotMat * boatFlipMat * boatToWorld);
 
         objectShader.setVec3("viewPos", currentCamera->getPosition());
         objectShader.setVec3("dirLight.direction", glm::vec3(-0.486897f, -0.0627906f, 0.8712f));
