@@ -491,8 +491,6 @@ void Game::updateOtherBoats() {
         //    continue;
         //}
 
-        if (distanceFromPlayer < 50.0f) continue;
-
         bool canMoveTowardPlayer = true;
         for (int j = 0; j < MAX_OTHER_BOATS_COUNT; j++) {
             if (i == j) continue;
@@ -512,12 +510,16 @@ void Game::updateOtherBoats() {
                 current.destDir = toPlayer;
                 current.destDir.y = 0.0f;
             }
+            else if (distanceFromPlayer < MIN_DISTANCE_FROM_PLAYER) {
+                moveBoat(current, -toPlayer);
+                continue;
+            }
 
             moveBoat(current, current.destDir);
             continue;
         }
 
-        if (canMoveTowardPlayer) moveBoat(current, toPlayer);
+        if (canMoveTowardPlayer && distanceFromPlayer > MIN_DISTANCE_FROM_PLAYER) moveBoat(current, toPlayer);
     }
 }
 
