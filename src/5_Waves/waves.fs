@@ -117,14 +117,14 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
 
     // fresnel
-    float normalreflection = 0.04; 
+    float normalreflection = 0.6; 
     float cos = max(0.0, dot(viewDir, normal));
     float fresnel = normalreflection  + (1.0 - normalreflection) * pow(1.0 - cos, 5.0);
 
     // combine results
-    vec3 ambient = light.ambient * currentColor;
-    vec3 diffuse = light.diffuse * diff * currentColor;
-    vec3 specular = light.specular * spec * currentColor * fresnel;
+    vec3 ambient = light.ambient;
+    vec3 diffuse = light.diffuse * diff;
+    vec3 specular = light.specular * spec * fresnel;
     return (ambient + diffuse + specular);
 }
 

@@ -653,7 +653,8 @@ void Game::render(float dt) {
     wavesShader.setMat4("view", view);
     wavesShader.setMat4("model", glm::mat4(1.0f) * glm::translate(glm::mat4(1.0f), glm::vec3(camPos.x, 0.0f, camPos.z)));
     wavesShader.setVec3("viewPos", currentCamera->getPosition());
-    wavesShader.setVec3("color", waterColor);
+    //wavesShader.setVec3("color", waterColor);
+    wavesShader.setVec3("color", glm::vec3(0.0f, 0.2f, 0.5f));
     wavesShader.setBool("useLighting", true);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTexture);
@@ -674,10 +675,11 @@ void Game::render(float dt) {
 
     //glm::vec3 lightPos(0.0f, 50.0f, 0.0f);
     wavesShader.setVec3("dirLight.direction", glm::vec3(-0.486897f, -0.0627906f, 0.8712f));
-    wavesShader.setVec3("dirLight.ambient", glm::vec3(0.4f));
-    wavesShader.setVec3("dirLight.diffuse", glm::vec3(0.6f));
-    wavesShader.setVec3("dirLight.specular", glm::vec3(0.9f));
-    wavesShader.setFloat("shininess", 16.0f);
+    //wavesShader.setVec3("dirLight.ambient", glm::vec3(0.4f));
+    wavesShader.setVec3("dirLight.ambient", glm::vec3(0.1f));
+    wavesShader.setVec3("dirLight.diffuse", glm::vec3(0.0f, 0.2f, 0.5f));
+    wavesShader.setVec3("dirLight.specular", glm::vec3(1.0f));
+    wavesShader.setFloat("shininess", 128.0f);
 
     wavesShader.setFloat("foamThreshold", 0.0001f);
     wavesShader.setFloat("foamIntensity", 1.0f);
